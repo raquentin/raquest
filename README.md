@@ -4,7 +4,7 @@ Raquest is a batteries-excluded command-line HTTP client built Insomnia and Post
 
 ## Features
 
-### Todo
+### v1 todo-list
 - [x] support all request types
 - [x] support json in files
 - [ ] support for headers
