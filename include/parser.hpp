@@ -5,5 +5,5 @@
 
 class Parser {
 public:
-    static Request parse_file(const std::string& file_path);
+  static Request parse_file(const std::string &file_path);
 };
