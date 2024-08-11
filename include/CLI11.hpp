@@ -43,7 +43,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
-#include <exception>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -53,7 +52,6 @@
 #include <locale>
 #include <map>
 #include <memory>
-#include <numeric>
 #include <set>
 #include <sstream>
 #include <stdexcept>
