@@ -1,6 +1,6 @@
 # 🏓 raquest (raq)
 
-Raquest is a minimalist command-line HTTP client on top of `libcurl`. It's a foss `curl++`-like response to closed-source bloatware like Insomnia and Postman being absolute shite. No monthly subscriptions or two minute ads to access your requests, just save them in `.raq` files, run `raq -f <query_name>.raq`, and move on with your life.
+Raquest is a batteries-excluded command-line HTTP client built Insomnia and Postman are trash. No monthly subscriptions or two minute ads to send raquests, just run `raq -f <query_name>.raq` and move on with your life.
 
 ## Features
 
@@ -13,10 +13,7 @@ Raquest is a minimalist command-line HTTP client on top of `libcurl`. It's a fos
 - [ ] lsp
 - [ ] tests of any sort
 - [ ] docs
-
-### A batteries-excluded design
-
-Raquest intentionally has no version control, response formatting, or search. Use `git`, `jq`, and `rg` for that.
+- [ ] plugin for asserting that certain requests recieve certain responses
 
 ## Development
 
@@ -26,7 +23,7 @@ Raquest intentionally has no version control, response formatting, or search. Us
 - libcurl
 - cli11 v2.4.2 (it's in /include)
 
-### Clangd LSP setup
+### Clangd Setup
 ```bash
     cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```
