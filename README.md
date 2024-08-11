@@ -7,7 +7,6 @@ Raquest is a minimalist command-line HTTP client on top of `libcurl`. It's a fos
 ### dependencies
 - cmake
 - g++ 14
-- c++ 20
 - libcurl
 - cli11 v2.4.2 (it's in /include)
 
