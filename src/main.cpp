@@ -1,14 +1,22 @@
+#include "CLI11.hpp"
 #include "parser.hpp"
 #include <iostream>
+#include <string>
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "usage: raquest <file.raq>" << std::endl;
-        return 1;
-    }
+using namespace std;
+
+int main(int argc, char** argv) {
+    // CLI11 setup
+    CLI::App app{"a command-line HTTP client"};
+
+    app.add_flag("-v,--version", "print version and exit");
+    string file_url;
+    app.add_option("-f,--file", file_url, "specify a .raq file")->required();
+
+    CLI11_PARSE(app, argc, argv);
 
     try {
-        Request request = Parser::parse_file(argv[1]);
+        Request request = Parser::parse_file(file_url);
         request.execute();
     } catch (const std::exception& ex) {
         std::cerr << "error: " << ex.what() << std::endl;

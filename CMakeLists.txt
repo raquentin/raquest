@@ -3,5 +3,6 @@ project(raquest)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMAND ON)
 
+include_directories(include)
 add_definitions(-DSOME_DEFINITION)
 add_subdirectory(src)
