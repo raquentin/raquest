@@ -1,6 +1,6 @@
 # 🏓 raquest (raq)
 
-Raquest is a command-line HTTP client on top of `libcurl`. I ragequit using postman and insomnia and could not find a `curl`-premium-like solution that wasn't shite. No watching a 2min add to access your requests, just save them in `.raq` files, run `raq -f <query_name>.raq`, and move on with your life.
+Raquest is a minimalist command-line HTTP client on top of `libcurl`. It's a foss `curl++`-like response to closed-source bloatware like Insomnia and Postman being absolute shite. No monthly subscriptions or two minute ads to access your requests, just save them in `.raq` files, run `raq -f <query_name>.raq`, and move on with your life.
 
 ## Development
 
