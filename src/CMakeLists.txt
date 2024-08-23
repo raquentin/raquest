@@ -1,5 +1,9 @@
-add_executable(raquest main.cpp parser.cpp request.cpp)
-target_include_directories(raquest PUBLIC ${PROJECT_SOURCE_DIR}/include)
+set(SOURCE_FILES parser.cpp request.cpp)
+
+add_library(raquestlib ${SOURCE_FILES})
+
+add_executable(raquest main.cpp)
+target_link_libraries(raquest raquestlib)
 
 # curl
 find_package(CURL REQUIRED)
