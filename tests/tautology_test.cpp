@@ -1,11 +1,7 @@
 #include <gtest/gtest.h>
 
-TEST(DummyTest, Addition) {
+TEST(Tautology, Addition) {
     EXPECT_EQ(1 + 1, 2);
-}
-
-TEST(DummyTest, Subtraction) {
-    EXPECT_EQ(5 - 3, 2);
 }
 
 int main(int argc, char **argv) {

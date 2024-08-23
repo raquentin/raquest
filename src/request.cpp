@@ -45,3 +45,13 @@ void Request::execute() const {
     curl_easy_cleanup(curl);
   }
 }
+
+const std::string &Request::get_method() const { return method; }
+
+const std::string &Request::get_url() const { return url; }
+
+const std::vector<std::string> &Request::get_headers() const { return headers; }
+
+const std::string &Request::get_json_body() const { return json_body; }
+
+const std::string &Request::get_response_data() const { return response_data; }

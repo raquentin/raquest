@@ -11,6 +11,12 @@ public:
     void set_json_body(const std::string& json);
     void execute() const;
 
+    const std::string &get_method() const;
+    const std::string &get_url() const;
+    const std::vector<std::string> &get_headers() const;
+    const std::string &get_json_body() const;
+    const std::string &get_response_data() const;
+
 private:
     std::string method;
     std::string url;
