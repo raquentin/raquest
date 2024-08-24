@@ -1,4 +1,4 @@
-set(SOURCE_FILES parser.cpp request.cpp)
+set(SOURCE_FILES parser.cpp request.cpp lexer.cpp)
 
 add_library(raquestlib ${SOURCE_FILES})
 

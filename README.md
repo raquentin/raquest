@@ -22,10 +22,17 @@ Raquest is a batteries-excluded command-line HTTP client built Insomnia and Post
 ### Dependencies
 - cmake 3.22+
 - g++ 14
-- libcurl
-- cli11 v2.4.2 (it's in /include)
+
+### Running Tests
+```bash
+    mkdir -p build \
+    cd build \
+    cmake .. \
+    cmake --build . \
+    ctest
+```
 
 ### Clangd Setup
 ```bash
-    cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```

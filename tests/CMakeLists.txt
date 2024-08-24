@@ -1,5 +1,3 @@
-enable_testing()
-
 set(TEST_SOURCE_FILES tautology_test.cpp parser_test.cpp)
 
 add_executable(raquest_test ${TEST_SOURCE_FILES})
