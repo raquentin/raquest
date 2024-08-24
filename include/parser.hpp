@@ -5,10 +5,15 @@
 
 class Parser {
 public:
-  static Request parse_file(const std::string &file_path);
+  std::expected<Request, std::vector<ParseError>> parse(const std::vector<Token> &tokens);
 
 private:
-  std::expected<void, ParseError> parse_method(Lexer &lexer, Request &request);
-  std::expected<void, ParseError> parse_headers(Lexer &lexer, Request &request);
-  std::expected<void, ParseError> parse_body(Lexer &lexer, Request &request);
+  std::vector<ParseError> errors;
+
+  std::optional<Token> expect_token(const std::vector<Token> &tokens, size_t &curr, TokenType expected_type);
+
+  void parse_method_and_url(const std::vector<Token> &tokens, size_t &curr, Request &request);
+  void parse_section(const std::vector<Token> &tokens, size_t &curr, Request &request);
+  void parse_headers(const std::vector<Token> &tokens, size_t &curr, Request &request);
+  void parse_body(const std::vector<Token> &tokens, size_t &curr, Request &request);
 };

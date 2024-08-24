@@ -1,51 +1,51 @@
-#include "parser.hpp"
 #include "CLI11.hpp"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include "parser.hpp"
 
-Request Parser::parse_file(const std::string &file_path) {
-  std::ifstream file(file_path);
-  if (!file.is_open()) {
-    throw std::runtime_error("failed to open file: " + file_path);
+std::expected<Request, std::vector<ParseError>>
+Parser::parse(const std::vector<Token> &tokens) {
+  Request request("", "");
+  size_t curr = 0;
+
+  // parse method and url
+  auto method_token = expect_token(tokens, curr, TokenType::Method);
+  if (!method_token.has_value()) {
+    errors.push_back(
+        ParseError{ErrorType::SemanticError, "Expected HTTP method", tokens[curr].line_number});
   }
 
-  std::string line;
-  std::string method, url;
-  std::vector<std::string> headers;
-  std::string json_payload;
-
-  bool in_json_section = false;
-
-  while (std::getline(file, line)) {
-    line = CLI::detail::trim(line);
-    if (line.empty() || line[0] == '#') {
-      continue; // skip empty and comments
-    }
-
-    if (!in_json_section) {
-      if (method.empty()) {
-        std::istringstream request_line(line);
-        request_line >> method >> url;
-      } else if (line.find(":") != std::string::npos) {
-        headers.push_back(line);
-      } else {
-        in_json_section = true;
-        json_payload += line + "\n";
-      }
-    } else {
-      json_payload += line + "\n";
-    }
+  auto url_token = expect_token(tokens, curr, TokenType::Url);
+  if (!url_token.has_value()) {
+    errors.push_back(
+        ParseError{ErrorType::SemanticError, "Expected URL after method", tokens[curr].line_number});
   }
 
-  Request request(method, url);
-  for (const auto &header : headers) {
-    request.add_header(header);
+  request = Request(method_token->value, url_token->value);
+
+  // parse subsequent
+  while (curr < tokens.size()) {
+    parse_section(tokens, curr, request);
   }
 
-  if (!json_payload.empty()) {
-    request.set_json_body(json_payload);
+  if (errors.empty()) {
+    return std::unexpected(errors);
   }
 
   return request;
+}
+
+std::optional<Token> Parser::expect_token(const std::vector<Token> &tokens,
+                                          size_t &current,
+                                          TokenType expected_type) {
+  if (current >= tokens.size() || tokens[current].type != expected_type) {
+    return std::nullopt;
+  }
+  return tokens[current++];
+}
+
+void Parser::parse_section(const std::vector<Token> &tokens, size_t &curr, Request &request) {
+  auto section_token = expect_token(tokens, curr, TokenType::HeaderSection);
+  if (!section_token.has_value()) {
 }
