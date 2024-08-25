@@ -1,15 +1,14 @@
-#include <optional>
 #include <string>
 
 enum class ErrorType {
-  SyntaxError,
-  SemanticError,
-  UnexpectedTokenError,
+  UnexpectedCharacter,
+  UnterminatedStringLiteral,
+  MalinformedSectionHeader,
 };
 
-struct ParseError {
+struct Error {
   ErrorType type;
   std::string message;
   int line_number;
-  std::optional<std::string> section;
+  int column_number;
 };

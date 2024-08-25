@@ -1,61 +1,18 @@
 #include "lexer.hpp"
-#include <algorithm>
 #include <cctype>
-#include <regex>
-#include <unordered_map>
+#include <optional>
 #include <vector>
-
-const std::unordered_map<std::string, HttpMethod> http_methods = {
-    {"GET", HttpMethod::GET},        {"POST", HttpMethod::POST},
-    {"PUT", HttpMethod::PUT},        {"DELETE", HttpMethod::DELETE},
-    {"PATCH", HttpMethod::PATCH},    {"HEAD", HttpMethod::HEAD},
-    {"OPTIONS", HttpMethod::OPTIONS}};
 
 Lexer::Lexer(const std::string &input)
     : input(input), position(0), line_number(1) {}
-
-std::optional<HttpMethod>
-Lexer::validate_http_method(const std::string &method) {
-  auto it = http_methods.find(method);
-  if (it != http_methods.end()) {
-    return it->second;
-  }
-
-  for (const auto &[valid_method, _] : http_methods) {
-    if (std::equal(valid_method.begin(), valid_method.end(), method.begin(),
-                   method.end(), [](char a, char b) {
-                     return std::toupper(a) == std::toupper(b);
-                   })) {
-      errors.push_back(ParseError{ErrorType::SyntaxError,
-                                  "Invalid HTTP method: " + method +
-                                      ". Did you mean: " + valid_method + "?",
-                                  line_number});
-      return std::nullopt;
-    }
-
-    errors.push_back(ParseError{ErrorType::SyntaxError,
-                                "Invalid HTTP method: " + method, line_number});
-    return std::nullopt;
-  }
-}
-
-bool Lexer::validate_url(const std::string &url) {
-  const std::regex url_regex(
-      R"(^(/[\w\-\.~]+)*(\?[\w\-\.~=%&]*)?(#[\w\-]*)?$)");
-
-  if (std::regex_match(url, url_regex)) {
-    return true;
-  }
-
-  errors.push_back(
-      ParseError{ErrorType::SyntaxError, "Invalid URL: " + url, line_number});
-  return false;
-}
 
 void Lexer::skip_whitespace_and_comments() {
   while (position < input.size() && std::isspace(input[position])) {
     if (input[position] == '\n') {
       line_number++;
+      column_number = 1;
+    } else {
+      column_number++;
     }
     position++;
   }
@@ -68,68 +25,113 @@ void Lexer::skip_whitespace_and_comments() {
   }
 }
 
-std::optional<Token> Lexer::tokenize_method_and_url() {
-  skip_whitespace_and_comments();
-
-  // tokenize method
+std::optional<Token> Lexer::tokenize_identifier() {
   size_t start = position;
-  while (position < input.size() && !std::isspace(input[position])) {
-    position++;
-  }
-  std::string method = input.substr(start, position - start);
+  int start_column = column_number;
 
-  auto http_method = validate_http_method(method);
-  if (!http_method.has_value()) {
+  while (position < input.size() && (std::isalnum(input[position])) ||
+         input[position] == '_') {
+    position++;
+    column_number++;
+  }
+
+  if (start == position) {
     return std::nullopt;
   }
 
+  return Token{TokenType::Identifier, input.substr(start, position - start),
+               line_number, start_column};
+}
+
+std::optional<Token> Lexer::tokenize_string_literal() {
+  if (input[position] != '"')
+    return std::nullopt;
+
+  int start_column = column_number;
+  position++;
+  column_number++;
+
+  size_t start = position;
+  while (position < input.size() && input[position] != '"') {
+    if (input[position] == '\n') {
+      errors.push_back(Error{ErrorType::UnterminatedStringLiteral,
+                             "Unterminated string literal", line_number,
+                             start_column});
+    }
+    position++;
+    column_number++;
+  }
+
+  if (position >= input.size() && input[position] != '"') {
+    errors.push_back(Error{ErrorType::UnterminatedStringLiteral,
+                           "Unterminated string literal", line_number,
+                           start_column});
+  }
+
+  std::string value = input.substr(start, position - start);
+  position++;
+  column_number++;
+
+  return Token{TokenType::StringLiteral, value, line_number, start_column};
+}
+
+std::optional<Token> Lexer::next_token() {
   skip_whitespace_and_comments();
 
-  // tokenize url
-  start = position;
-  while (position < input.size() && !std::isspace(input[position])) {
-    position++;
+  if (position >= input.size()) {
+    return Token{TokenType::EndOfFile, "", line_number, column_number};
   }
-  std::string url = input.substr(start, position - start);
 
-  if (!method.empty() && !url.empty()) {
-    return Token{TokenType::Method, method, line_number};
-    return Token{TokenType::Url, url, line_number};
+  char curr_char = input[position];
+  int start_column = column_number;
+
+  if (curr_char == '[') {
+    position++;
+    column_number++;
+    return Token{TokenType::OpenBracket, "[", line_number, start_column};
+  } else if (curr_char == ']') {
+    position++;
+    column_number++;
+    return Token{TokenType::CloseBracket, "]", line_number, start_column};
+  } else if (curr_char == '=') {
+    position++;
+    column_number++;
+    return Token{TokenType::Equals, "=", line_number, start_column};
+  } else if (curr_char == ':') {
+    position++;
+    column_number++;
+    return Token{TokenType::Colon, ":", line_number, start_column};
+  } else if (curr_char == '\n') {
+    position++;
+    line_number++;
+    column_number = 1;
+    return Token{TokenType::Newline, "\n", line_number, start_column};
+  } else if (curr_char == '"') {
+    return tokenize_string_literal();
+  } else if (std::isalpha(curr_char) || curr_char == '_') {
+    return tokenize_identifier();
   } else {
-    errors.push_back(ParseError{ErrorType::SyntaxError,
-                                "Failed to parse method and url", line_number});
+    errors.push_back(Error{ErrorType::UnexpectedCharacter,
+                           "Unexpected character: ", line_number,
+                           start_column});
+    position++;
+    column_number++;
+    return std::nullopt;
   }
 }
 
-std::expected<std::vector<Token>, std::vector<ParseError>> Lexer::tokenize() {
+std::expected<std::vector<Token>, std::vector<Error>> Lexer::tokenize() {
   std::vector<Token> tokens;
 
-  skip_whitespace_and_comments();
-
-  auto method_token = tokenize_method_and_url();
-  if (method_token.has_value()) {
-    tokens.push_back(method_token.value());
-  } else {
-    return std::unexpected(errors);
-  }
-
   while (position < input.size()) {
-    skip_whitespace_and_comments();
-
-    if (position < input.size()) {
-      break;
-    }
-
-    if (input[position] == '[') {
-      auto token = tokenize_section();
-      if (token.has_value()) {
-        tokens.push_back(token.value());
-      }
+    auto token = next_token();
+    if (token.has_value()) {
+      tokens.push_back(token.value());
+    } else if (!errors.empty()) {
+      return std::unexpected(errors);
     }
   }
 
-  if (errors.empty()) {
-    return tokens;
-  }
-  return std::unexpected(errors);
+  tokens.push_back(Token{TokenType::EndOfFile, "", line_number, column_number});
+  return tokens;
 }
