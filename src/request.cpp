@@ -1,5 +1,4 @@
 #include "request.hpp"
-#include <algorithm>
 #include <curl/easy.h>
 #include <iostream>
 

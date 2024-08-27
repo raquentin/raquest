@@ -1,8 +1,8 @@
 #pragma once
 
 #include "error.hpp"
-#include <optional>
 #include <expected>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,13 +28,13 @@ class Lexer {
 public:
   Lexer(const std::string &input);
   std::expected<std::vector<Token>, std::vector<Error>> tokenize();
+  std::vector<Error> errors;
 
 private:
   std::string input;
   size_t position;
   int line_number;
   int column_number;
-  std::vector<Error> errors;
 
   void skip_whitespace_and_comments();
   std::optional<Token> tokenize_identifier();

@@ -1,43 +1,18 @@
 #include "parser.hpp"
-#include "CLI11.hpp"
-#include <fstream>
 #include <sstream>
-#include <stdexcept>
 
-const std::unordered_map<std::string, HttpMethod> http_methods = {
-    {"GET", HttpMethod::GET},        {"POST", HttpMethod::POST},
-    {"PUT", HttpMethod::PUT},        {"DELETE", HttpMethod::DELETE},
-    {"PATCH", HttpMethod::PATCH},    {"HEAD", HttpMethod::HEAD},
-    {"OPTIONS", HttpMethod::OPTIONS}};
-
-std::expected<Request, std::vector<ParseError>>
+std::expected<Request, std::vector<Error>>
 Parser::parse(const std::vector<Token> &tokens) {
   Request request("", "");
   size_t curr = 0;
 
-  // parse method and url
-  auto method_token = expect_token(tokens, curr, TokenType::Method);
-  if (!method_token.has_value()) {
-    errors.push_back(ParseError{ErrorType::SemanticError,
-                                "Expected HTTP method",
-                                tokens[curr].line_number});
-  }
+  parse_reqline(tokens, curr, request);
 
-  auto url_token = expect_token(tokens, curr, TokenType::Url);
-  if (!url_token.has_value()) {
-    errors.push_back(ParseError{ErrorType::SemanticError,
-                                "Expected URL after method",
-                                tokens[curr].line_number});
-  }
-
-  request = Request(method_token->value, url_token->value);
-
-  // parse subsequent
   while (curr < tokens.size()) {
     parse_section(tokens, curr, request);
   }
 
-  if (errors.empty()) {
+  if (!errors.empty()) {
     return std::unexpected(errors);
   }
 
@@ -47,14 +22,112 @@ Parser::parse(const std::vector<Token> &tokens) {
 std::optional<Token> Parser::expect_token(const std::vector<Token> &tokens,
                                           size_t &current,
                                           TokenType expected_type) {
-  if (current >= tokens.size() || tokens[current].type != expected_type) {
+  if (current >= tokens.size()) {
+    errors.push_back(Error{ErrorType::UnexpectedEndOfFile,
+                           "Unexpected end of file", tokens.back().line_number,
+                           tokens.back().column_number});
     return std::nullopt;
   }
+
+  if (tokens[current].type != expected_type) {
+    std::stringstream ss;
+    // TODO: read and subsequently forgot about a better strat than static_cast
+    ss << "Expected " << static_cast<int>(expected_type) << " but found "
+       << static_cast<int>(tokens[current].type);
+    errors.push_back(Error{ErrorType::UnexpectedIdentifier, ss.str(),
+                           tokens[current].line_number,
+                           tokens[current].column_number});
+    return std::nullopt;
+  }
+
   return tokens[current++];
+}
+
+void Parser::parse_reqline(const std::vector<Token> &tokens, size_t &curr,
+                           Request &request) {
+  auto method_token = expect_token(tokens, curr, TokenType::Identifier);
+  if (!method_token.has_value()) {
+    return;
+  }
+
+  auto url_token = expect_token(tokens, curr, TokenType::Identifier);
+  if (!url_token.has_value()) {
+    return;
+  }
+
+  request = Request(method_token->value, url_token->value);
 }
 
 void Parser::parse_section(const std::vector<Token> &tokens, size_t &curr,
                            Request &request) {
-  auto section_token = expect_token(tokens, curr, TokenType::HeaderSection);
-  if (!section_token.has_value()) {
+  auto open_bracket_token = expect_token(tokens, curr, TokenType::OpenBracket);
+  if (!open_bracket_token.has_value()) {
+    return;
   }
+
+  auto section_name_token = expect_token(tokens, curr, TokenType::Identifier);
+  if (!section_name_token.has_value()) {
+    return;
+  }
+
+  std::string section_name = section_name_token->value;
+
+  auto close_bracket_token =
+      expect_token(tokens, curr, TokenType::CloseBracket);
+  if (!close_bracket_token.has_value()) {
+    return;
+  }
+
+  if (section_name == "headers") {
+    parse_headers(tokens, curr, request);
+  } else if (section_name == "body") {
+    parse_body(tokens, curr, request);
+  } else {
+    errors.push_back(Error{ErrorType::UnexpectedIdentifier,
+                           "Unrecognized section name: " + section_name,
+                           tokens[curr].line_number,
+                           tokens[curr].column_number});
+  }
+}
+
+void Parser::parse_headers(const std::vector<Token> &tokens, size_t &curr,
+                           Request &request) {
+  while (curr < tokens.size()) {
+    auto key_token = expect_token(tokens, curr, TokenType::Identifier);
+    if (!key_token.has_value()) {
+      return;
+    }
+
+    auto colon_token = expect_token(tokens, curr, TokenType::Colon);
+    if (!colon_token.has_value()) {
+      return;
+    }
+
+    // TODO: think about this being a indent vs string literal
+    auto value_token = expect_token(tokens, curr, TokenType::StringLiteral);
+    if (!value_token.has_value()) {
+      return;
+    }
+
+    request.add_header(key_token->value + ": " + value_token->value);
+
+    auto newline_token = expect_token(tokens, curr, TokenType::Newline);
+    if (!newline_token.has_value()) {
+      return;
+    }
+  }
+}
+
+void Parser::parse_body(const std::vector<Token> &tokens, size_t &curr,
+                        Request &request) {
+  // just eat the characters until the end of the file
+  while (curr < tokens.size()) {
+    auto token = tokens[curr];
+    if (token.type == TokenType::EndOfFile) {
+      return;
+    }
+    curr++;
+  }
+
+  request.set_json_body("");
+}

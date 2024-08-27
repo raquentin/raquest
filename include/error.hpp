@@ -4,6 +4,8 @@ enum class ErrorType {
   UnexpectedCharacter,
   UnterminatedStringLiteral,
   MalinformedSectionHeader,
+  UnexpectedIdentifier,
+  UnexpectedEndOfFile,
 };
 
 struct Error {
