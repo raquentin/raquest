@@ -4,6 +4,35 @@ Raquest is a batteries-excluded command-line HTTP client built Insomnia and Post
 
 ## Features
 
+### `.raq` files
+
+Requests with 'raquest' are written in `'.raq'` files. They are similar to writing `curl` commands in bash scripts.
+
+```
+[request]
+POST https://jsonplaceholder.typicode.com/posts
+
+[headers]
+Authorization: Bearer exampletoken12345
+Content-Type: application/json
+Custom-Header: custom_value
+
+[body type="json"]
+{
+  "title": "foo",
+  "body": "bar",
+  "userId": 1
+}
+
+[assertion on="status"]
+201
+
+[assertion on="response"]
+{
+  "message": "foo"
+}
+```
+
 ### v1 todo-list
 - [x] support all request types
 - [x] support json in files
@@ -14,7 +43,7 @@ Raquest is a batteries-excluded command-line HTTP client built Insomnia and Post
 - [x] tests of any sort
 - [ ] docs
 - [ ] logging
-- [ ] plugin for asserting that certain requests recieve certain responses
+- [ ] assertions
 - [x] ci
 
 ## Development

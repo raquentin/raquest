@@ -13,6 +13,7 @@ enum class TokenType {
   Identifier,
   Colon,
   StringLiteral,
+  BodyContent,
   Newline,
   EndOfFile,
 };
@@ -39,5 +40,6 @@ private:
   void skip_whitespace_and_comments();
   std::optional<Token> tokenize_identifier();
   std::optional<Token> tokenize_string_literal();
+  std::optional<Token> tokenize_body_content();
   std::optional<Token> next_token();
 };

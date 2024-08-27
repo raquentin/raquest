@@ -1,16 +1,22 @@
-# Example .raq file for testing raquest
-
-# Request type and URL
+[request]
 POST https://jsonplaceholder.typicode.com/posts
 
-# Headers
+[headers]
 Authorization: Bearer exampletoken12345
 Content-Type: application/json
 Custom-Header: custom_value
 
-# JSON payload
+[body type="json"]
 {
   "title": "foo",
   "body": "bar",
   "userId": 1
+}
+
+[assertion on="status"]
+201
+
+[assertion on="response"]
+{
+  "message": "foo"
 }
