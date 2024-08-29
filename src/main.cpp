@@ -2,6 +2,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "request.hpp"
+#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -17,7 +18,11 @@ int main(int argc, char **argv) {
   CLI11_PARSE(app, argc, argv);
 
   try {
-    Lexer lexer = Lexer{file_url};
+    std::ifstream file(file_url);
+    std::string file_as_str((std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>());
+    cout << file_as_str << endl;
+    Lexer lexer = Lexer{file_as_str};
     auto tokens = lexer.tokenize();
     if (!tokens.has_value()) {
       for (auto error : lexer.errors) {

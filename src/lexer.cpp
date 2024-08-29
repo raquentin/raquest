@@ -1,5 +1,6 @@
 #include "lexer.hpp"
 #include <cctype>
+#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -29,8 +30,8 @@ std::optional<Token> Lexer::tokenize_identifier() {
   size_t start = position;
   int start_column = column_number;
 
-  while (position < input.size() && (std::isalnum(input[position])) ||
-         input[position] == '_') {
+  while (position < input.size() && (std::isalnum(input[position]) ||
+         input[position] == '_' || input[position] == '-')) {
     position++;
     column_number++;
   }
@@ -112,7 +113,7 @@ std::optional<Token> Lexer::next_token() {
     return tokenize_identifier();
   } else {
     errors.push_back(Error{ErrorType::UnexpectedCharacter,
-                           "Unexpected character: ", line_number,
+                           "Unexpected character: " + std::string(1, curr_char),
                            start_column});
     position++;
     column_number++;

@@ -120,7 +120,7 @@ void Parser::parse_headers(const std::vector<Token> &tokens, size_t &curr,
 
 void Parser::parse_body(const std::vector<Token> &tokens, size_t &curr,
                         Request &request) {
-  // just eat the characters until the end of the file
+  // TODO: just eat the characters until the end of the file or the next section
   while (curr < tokens.size()) {
     auto token = tokens[curr];
     if (token.type == TokenType::EndOfFile) {
