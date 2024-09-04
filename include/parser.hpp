@@ -1,29 +1,28 @@
 #pragma once
-#include "lexer.hpp"
+#include "error.hpp"
 #include "request.hpp"
 #include <expected>
 #include <optional>
+#include <string>
 #include <vector>
 
 enum class HttpMethod { GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, UNKNOWN };
 
 class Parser {
 public:
-  std::expected<Request, std::vector<Error>>
-  parse(const std::vector<Token> &tokens);
-
-  std::vector<Error> errors;
+  Parser(const std::string &input);
+  std::expected<Request, std::vector<Error>> parse();
 
 private:
-  std::optional<Token> expect_token(const std::vector<Token> &tokens,
-                                    size_t &curr, TokenType expected_type);
+  std::string input;
+  size_t position;
+  int line_number;
+  int column_number;
+  std::vector<Error> errors;
 
-  void parse_reqline(const std::vector<Token> &tokens, size_t &curr,
-                     Request &request);
-  void parse_section(const std::vector<Token> &tokens, size_t &curr,
-                     Request &request);
-  void parse_headers(const std::vector<Token> &tokens, size_t &curr,
-                     Request &request);
-  void parse_body(const std::vector<Token> &tokens, size_t &curr,
-                  Request &request);
+  std::optional<std::string> next_line();
+  void parse_request(Request &request);
+  void parse_headers(Request &request);
+  void parse_body(Request &request);
+  void parse_assertions(Request &request);
 };
