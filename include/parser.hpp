@@ -12,6 +12,7 @@ class Parser {
 public:
   Parser(const std::string &input);
   std::expected<Request, std::vector<Error>> parse();
+  std::vector<Error> get_errors() const;
 
 private:
   std::string input;
@@ -24,5 +25,5 @@ private:
   void parse_request(Request &request);
   void parse_headers(Request &request);
   void parse_body(Request &request);
-  void parse_assertions(Request &request);
+  void parse_assertion(Request &request);
 };

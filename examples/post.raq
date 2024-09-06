@@ -13,10 +13,12 @@ Custom-Header: custom_value
   "userId": 1
 }
 
-[assertion on="status"]
-201
+[assertion name="status_is_201"]
+{
+    "status": 201
+}
 
-[assertion on="response"]
+[assertion name="message_is_foo"]
 {
   "message": "foo"
 }

@@ -4,6 +4,7 @@ enum class ErrorType {
   UnexpectedCharacter,
   UnterminatedStringLiteral,
   MalinformedSectionHeader,
+  ExpectedIdentifier,
   UnexpectedIdentifier,
   UnexpectedEndOfFile,
 };
