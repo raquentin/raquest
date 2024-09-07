@@ -15,7 +15,7 @@ Custom-Header: custom_value
 
 [assertion name="status_is_201"]
 {
-    "status": 201
+  "status": 201
 }
 
 [assertion name="message_is_foo"]

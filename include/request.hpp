@@ -12,10 +12,8 @@ public:
   void set_url(const std::string &url);
   void add_header(const std::string &key, const std::string &value);
   void set_body(const std::string &json);
-
   // TODO: assertions won't be strings, make assertions.cpp
   void add_assertion(const std::string &assertion);
-  void execute() const;
 
   const std::string &get_method() const;
   const std::string &get_url() const;
@@ -23,6 +21,8 @@ public:
   const std::string &get_body() const;
   const std::string &get_response_data() const;
   const std::vector<std::string> &get_assertions() const;
+
+  void execute() const;
 
 private:
   std::string method;

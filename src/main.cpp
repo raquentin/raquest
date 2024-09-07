@@ -4,13 +4,11 @@
 #include <iostream>
 #include <string>
 
-using namespace std;
-
 int main(int argc, char **argv) {
   CLI::App app{"a command-line HTTP client"};
 
   app.add_flag("-v,--version", "print version and exit");
-  string file_url;
+  std::string file_url;
   app.add_option("-f,--file", file_url, "specify a .raq file")->required();
 
   CLI11_PARSE(app, argc, argv);
@@ -18,7 +16,7 @@ int main(int argc, char **argv) {
   try {
     std::ifstream file(file_url);
     std::string file_as_str((std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>());
+                            std::istreambuf_iterator<char>());
     Parser parser = Parser(file_as_str);
     auto request = parser.parse();
     if (!request.has_value()) {

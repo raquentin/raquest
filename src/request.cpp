@@ -72,3 +72,7 @@ const std::vector<std::string> &Request::get_headers() const { return headers; }
 const std::string &Request::get_body() const { return body; }
 
 const std::string &Request::get_response_data() const { return response_data; }
+
+const std::vector<std::string> &Request::get_assertions() const {
+  return assertions;
+}

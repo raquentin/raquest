@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include <cstddef>
+#include <iostream>
 #include <optional>
 #include <sstream>
 
@@ -33,14 +34,15 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
     if (line->empty() || line->at(0) == '#')
       continue;
 
-    if (line->at(0) == '[') {
+    if (!line->empty() && line->at(0) == '[') {
       if (*line == "[request]") {
         parse_request(request);
       } else if (*line == "[headers]") {
         parse_headers(request);
-      } else if (line->find("[body")) {
+      } else if (line->find("[body") != std::string::npos) {
+        std::cout << "line: " << *line << std::endl;
         parse_body(request);
-      } else if (line->find("[assertion")) {
+      } else if (line->find("[assertion") != std::string::npos) {
         parse_assertion(request);
       } else {
         errors.push_back(Error(ErrorType::MalinformedSectionHeader,
@@ -97,11 +99,6 @@ void Parser::parse_headers(Request &request) {
     std::string value = line->substr(colon_pos + 1);
     request.add_header(key, value);
   }
-
-  if (line.has_value() && line->at(0) == '[') {
-    position -= line->size() + 1;
-    line_number--;
-  }
 }
 
 void Parser::parse_body(Request &request) {
@@ -110,15 +107,11 @@ void Parser::parse_body(Request &request) {
 
   while ((line = next_line()).has_value() && !line->empty() &&
          line->at(0) != '[') {
+    std::cout << *line << std::endl;
     body_content << *line << '\n';
   }
 
   request.set_body(body_content.str());
-
-  if (line.has_value() && line->at(0) == '[') {
-    position -= line->size() + 1;
-    line_number--;
-  }
 }
 
 void Parser::parse_assertion(Request &request) {
