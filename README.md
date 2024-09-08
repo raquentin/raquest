@@ -52,14 +52,16 @@ json_field: description here is the description
 - [x] support json in files
 - [x] support for headers
 - [ ] cookies
-- [ ] good parser errors
+- [ ] suggestive parser errors
 - [ ] lsp
-- [ ] support all std body types
-- [ ] tests of any sort
-- [ ] docs
+- [ ] support xml, plain, form, multipart, encoded
+- [ ] good parser coverage
+- [ ] mocked libcurl/fake server
+- [ ] honorable usage docs
+- [ ] decent contrib docs
 - [ ] logging
 - [x] assertions
-- [ ] ci
+- [ ] build & test ci on linux, win, macos
 
 ## Development
 
