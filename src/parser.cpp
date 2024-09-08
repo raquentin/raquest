@@ -40,7 +40,6 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
       } else if (*line == "[headers]") {
         parse_headers(request);
       } else if (line->find("[body") != std::string::npos) {
-        std::cout << "line: " << *line << std::endl;
         parse_body(request);
       } else if (line->find("[assertion") != std::string::npos) {
         parse_assertion(request);
@@ -107,7 +106,6 @@ void Parser::parse_body(Request &request) {
 
   while ((line = next_line()).has_value() && !line->empty() &&
          line->at(0) != '[') {
-    std::cout << *line << std::endl;
     body_content << *line << '\n';
   }
 
@@ -115,15 +113,36 @@ void Parser::parse_body(Request &request) {
 }
 
 void Parser::parse_assertion(Request &request) {
-  auto line = next_line();
-  if (!line.has_value()) {
-    errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
-                           "Expected assertion value", line_number,
-                           column_number));
-  }
+  std::optional<std::string> line;
 
-  // TODO: actually impl this
-  request.add_assertion(*line);
+  while ((line = next_line()).has_value() && !line->empty() &&
+         line->at(0) != '[') {
+    if (line->find("status") != std::string::npos) {
+      size_t colon_pos = line->find(':');
+      std::string codes = line->substr(colon_pos + 1);
+      std::istringstream iss(codes);
+      std::vector<int> status_codes;
+      int code;
+      while (iss >> code) {
+        status_codes.push_back(code);
+        if (iss.peek() == ',') {
+          iss.ignore();
+        }
+      }
+      request.add_status_code_assertion(status_codes);
+    } else if (line->find("header") != std::string::npos) {
+      size_t equals_pos = line->find('=');
+      std::string key = line->substr(7, equals_pos - 7); // Remove "header: "
+      std::string value = line->substr(equals_pos + 1);
+      request.add_header_assertion(key, value);
+    } else if (line->find("json_field") != std::string::npos) {
+      size_t equals_pos = line->find('=');
+      std::string field =
+          line->substr(11, equals_pos - 11); // Remove "json_field: "
+      std::string pattern = line->substr(equals_pos + 1);
+      request.add_json_field_assertion(field, pattern);
+    }
+  }
 }
 
 std::vector<Error> Parser::get_errors() const { return errors; }

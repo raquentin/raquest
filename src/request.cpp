@@ -1,4 +1,5 @@
 #include "request.hpp"
+#include <cstddef>
 #include <curl/easy.h>
 #include <iostream>
 
@@ -20,14 +21,43 @@ void Request::add_header(const std::string &key, const std::string &value) {
 
 void Request::set_body(const std::string &json) { body = json; }
 
-void Request::add_assertion(const std::string &assertion) {
-  assertions.push_back(assertion);
+void Request::add_status_code_assertion(const std::vector<int> &codes) {
+  auto assertion = Assertion::create().status_codes(codes);
+  assertions.push_back(std::make_shared<Assertion>(assertion));
+}
+
+void Request::add_header_assertion(const std::string &key,
+                                   const std::string &value) {
+  auto assertion = Assertion::create().header(key, value);
+  assertions.push_back(std::make_shared<Assertion>(assertion));
+}
+
+void Request::add_json_field_assertion(const std::string &field,
+                                       const std::string &pattern) {
+  auto assertion = Assertion::create().json_field(field, pattern);
+  assertions.push_back(std::make_shared<Assertion>(assertion));
+}
+
+void Request::check_assertions(const Response &response) const {
+  for (const auto &assertion : assertions) {
+  if (auto err = assertion->validate(response)) {
+      std::cerr << "Assertion failed: " << err->message << std::endl;
+    }
+  }
 }
 
 size_t Request::WriteCallback(void *contents, size_t size, size_t nmemb,
                               void *userp) {
   ((std::string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
+}
+
+size_t Request::HeaderCallback(char *buffer, size_t size, size_t nitems,
+                               void *userdata) {
+  Response *response = static_cast<Response *>(userdata);
+  size_t header_size = size * nitems;
+  response->parse_header(std::string(buffer, header_size));
+  return header_size;
 }
 
 void Request::execute() const {
@@ -48,8 +78,13 @@ void Request::execute() const {
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
   }
 
+  Response response;
+
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data);
+
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &response);
 
   CURLcode res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
@@ -57,10 +92,17 @@ void Request::execute() const {
                              std::string(curl_easy_strerror(res)));
   }
 
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  response.parse_status_code(http_code);
+  response.set_body(response_data);
+
   curl_slist_free_all(curl_headers);
   curl_easy_cleanup(curl);
 
   std::cout << response_data << std::endl;
+
+  check_assertions(response);
 }
 
 const std::string &Request::get_method() const { return method; }
@@ -72,7 +114,3 @@ const std::vector<std::string> &Request::get_headers() const { return headers; }
 const std::string &Request::get_body() const { return body; }
 
 const std::string &Request::get_response_data() const { return response_data; }
-
-const std::vector<std::string> &Request::get_assertions() const {
-  return assertions;
-}
