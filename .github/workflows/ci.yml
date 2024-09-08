@@ -11,22 +11,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
-    env:
-      CXX: clang++-14
-      CLANG_FORMAT: clang-format-14
-
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
-
-      - name: Install CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.28.x'
-
-      - name: Install dependencies
-        run: sudo apt-get install -y gcc g++ clang
 
       - name: Configure CMake
         run: |
