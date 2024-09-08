@@ -7,39 +7,39 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      CXX: clang++-14
+      CLANG_FORMAT: clang-format-14
+
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      # Install CMake
       - name: Install CMake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.28.x'
 
-      # Install dependencies
       - name: Install dependencies
         run: sudo apt-get install -y gcc g++ clang
 
-      # Configure and build the project
       - name: Configure CMake
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_STANDARD=23
+          cmake ..
 
-      # Build the project
       - name: Build the project
         run: |
           cd build
-          make
+          cmake --build .
 
-      # Run Google Tests
       - name: Run tests
         run: |
           cd build
-          ctest --output-on-failure
+          ctest
