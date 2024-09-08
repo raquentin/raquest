@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <optional>
@@ -112,6 +113,20 @@ void Parser::parse_body(Request &request) {
   request.set_body(body_content.str());
 }
 
+std::string trim(const std::string &str) {
+  auto begin = str.begin();
+  while (begin != str.end() && std::isspace(*begin)) {
+    begin++;
+  }
+
+  auto end = str.end();
+  do {
+    end--;
+  } while (std::distance(begin, end) > 0 && std::isspace(*end));
+
+  return std::string(begin, end + 1);
+}
+
 void Parser::parse_assertion(Request &request) {
   std::optional<std::string> line;
 
@@ -138,11 +153,47 @@ void Parser::parse_assertion(Request &request) {
       std::string value = line->substr(equals_pos + 1);
       assertions.header(key, value);
     } else if (line->find("json_field") != std::string::npos) {
-      size_t equals_pos = line->find('=');
-      std::string field =
-          line->substr(11, equals_pos - 11); // Remove "json_field: "
-      std::string pattern = line->substr(equals_pos + 1);
-      assertions.json_field(field, pattern);
+      size_t colon_pos = line->find(':');
+      if (colon_pos == std::string::npos) {
+        errors.push_back(Error(ErrorType::ExpectedIdentifier,
+                               "Invalid json_field syntax", line_number,
+                               column_number));
+        return;
+      }
+
+      size_t field_start = colon_pos + 2; // skip the colon and the space
+
+      size_t value_start = line->find(' ', field_start);
+      if (value_start == std::string::npos) {
+        errors.push_back(Error(ErrorType::ExpectedIdentifier,
+                               "Invalid json_field syntax: missing value",
+                               line_number, column_number));
+        return;
+      }
+
+      std::string field = line->substr(field_start, value_start - field_start);
+      std::string value =
+          line->substr(value_start + 1); // everything after the first space
+
+      if (field.empty()) {
+        errors.push_back(Error(ErrorType::ExpectedIdentifier,
+                               "Field name cannot be empty", line_number,
+                               column_number));
+        return;
+      }
+
+      // intelligent type inference (regex, number, boolean, or string match)
+      if (value == "true" || value == "false") {
+        assertions.json_field(field, value); // boolean field
+      } else if (std::regex_match(value, std::regex("^-?\\d+(\\.\\d+)?$"))) {
+        assertions.json_field(field, value); // number
+      } else {
+        // it's a string or regex pattern
+        if (value.front() != '^' && value.back() != '$') {
+          value = "^" + value + "$"; // regex wrap
+        }
+        assertions.json_field(field, value);
+      }
     }
   }
 

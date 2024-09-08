@@ -9,10 +9,14 @@ Custom-Header: custom_value
 [body type="json"]
 {
   "title": "foo",
-  "body": "bar",
-  "userId": 1
+  "age": 30,
+  "isActive": true,
+  "description": "here is the description"
 }
 
 [assertions]
 status: 201
-json_field:title=^"foo"$
+json_field: title ^foo$
+json_field: age 30
+json_field: isActive true
+json_field: description here is the description

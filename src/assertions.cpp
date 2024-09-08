@@ -1,4 +1,5 @@
 #include "assertions.hpp"
+#include <iostream>
 #include <sstream>
 
 Assertions Assertions::create() { return Assertions(); }
@@ -75,17 +76,25 @@ std::optional<FailedAssertion>
 Assertions::validate_json_fields(const Response &response) const {
   for (const auto &[key, pattern] : expected_json_fields) {
     auto value = response.get_json_field(key);
+
     if (!value.has_value()) {
       return FailedAssertion(FailedAssertionType::MissingJsonField,
                              "Expected json field '" + key +
                                  "' to be present but it wasn't");
     }
-    if (!std::regex_match(*value, pattern.get_regex())) {
+
+    std::string val = value.value();
+
+    if (val.front() == '"' && val.back() == '"') {
+      val = val.substr(1, val.size() - 2);
+    }
+
+    if (!std::regex_match(val, pattern.get_regex())) {
       return FailedAssertion(FailedAssertionType::UnexpectedJsonField,
                              "Expected json field '" + key +
                                  "' to match pattern '" +
                                  pattern.get_pattern() +
-                                 "' but it didn't, it was '" + *value + "'");
+                                 "' but it didn't, it was '" + val + "'");
     }
   }
   return std::nullopt;
