@@ -14,4 +14,5 @@ Custom-Header: custom_value
 }
 
 [assertions]
-json_field: message: foo
+status: 201
+json_field:title=^"foo"$

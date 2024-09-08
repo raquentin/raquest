@@ -115,6 +115,8 @@ void Parser::parse_body(Request &request) {
 void Parser::parse_assertion(Request &request) {
   std::optional<std::string> line;
 
+  Assertions assertions = Assertions::create();
+
   while ((line = next_line()).has_value() && !line->empty() &&
          line->at(0) != '[') {
     if (line->find("status") != std::string::npos) {
@@ -129,20 +131,22 @@ void Parser::parse_assertion(Request &request) {
           iss.ignore();
         }
       }
-      request.add_status_code_assertion(status_codes);
+      assertions.status_codes(status_codes);
     } else if (line->find("header") != std::string::npos) {
       size_t equals_pos = line->find('=');
       std::string key = line->substr(7, equals_pos - 7); // Remove "header: "
       std::string value = line->substr(equals_pos + 1);
-      request.add_header_assertion(key, value);
+      assertions.header(key, value);
     } else if (line->find("json_field") != std::string::npos) {
       size_t equals_pos = line->find('=');
       std::string field =
           line->substr(11, equals_pos - 11); // Remove "json_field: "
       std::string pattern = line->substr(equals_pos + 1);
-      request.add_json_field_assertion(field, pattern);
+      assertions.json_field(field, pattern);
     }
   }
+
+  request.set_assertions(assertions);
 }
 
 std::vector<Error> Parser::get_errors() const { return errors; }

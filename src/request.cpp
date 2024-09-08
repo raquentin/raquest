@@ -1,10 +1,12 @@
 #include "request.hpp"
+#include "assertions.hpp"
 #include <cstddef>
 #include <curl/easy.h>
 #include <iostream>
 
 Request::Request(const std::string &method, const std::string &url)
-    : method(method), url(url), curl(curl_easy_init()) {
+    : method(method), url(url), curl(curl_easy_init()),
+      assertions(Assertions::create()) {
   if (!curl) {
     throw std::runtime_error("failed to initialize curl");
   }
@@ -21,28 +23,13 @@ void Request::add_header(const std::string &key, const std::string &value) {
 
 void Request::set_body(const std::string &json) { body = json; }
 
-void Request::add_status_code_assertion(const std::vector<int> &codes) {
-  auto assertion = Assertion::create().status_codes(codes);
-  assertions.push_back(std::make_shared<Assertion>(assertion));
-}
-
-void Request::add_header_assertion(const std::string &key,
-                                   const std::string &value) {
-  auto assertion = Assertion::create().header(key, value);
-  assertions.push_back(std::make_shared<Assertion>(assertion));
-}
-
-void Request::add_json_field_assertion(const std::string &field,
-                                       const std::string &pattern) {
-  auto assertion = Assertion::create().json_field(field, pattern);
-  assertions.push_back(std::make_shared<Assertion>(assertion));
+void Request::set_assertions(const Assertions &assertions) {
+  this->assertions = assertions;
 }
 
 void Request::check_assertions(const Response &response) const {
-  for (const auto &assertion : assertions) {
-  if (auto err = assertion->validate(response)) {
-      std::cerr << "Assertion failed: " << err->message << std::endl;
-    }
+  if (auto err = assertions.validate(response)) {
+    std::cerr << "Assertion failed: " << err->message << std::endl;
   }
 }
 

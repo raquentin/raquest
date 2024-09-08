@@ -43,8 +43,8 @@ void Response::parse_header(const std::string &header_line) {
     std::string key = header_line.substr(0, separator_pos);
     std::string value = header_line.substr(separator_pos + 1);
 
-    // key.erase(key.find_last_not_of(" \n\r\t") + 1);
-    // value.erase(0, value.find_first_not_of(" \n\r\t"));
+    key.erase(key.find_last_not_of(" \n\r\t") + 1);
+    value.erase(0, value.find_first_not_of(" \n\r\t"));
 
     headers[key] = value;
   }

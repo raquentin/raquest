@@ -18,13 +18,13 @@ struct FailedAssertion {
   std::string message;
 };
 
-class Assertion {
+class Assertions {
 public:
-  static Assertion create();
+  static Assertions create();
 
-  Assertion &status_codes(const std::vector<int> &expected_codes);
-  Assertion &header(const std::string &key, const std::string &expected_value);
-  Assertion &json_field(const std::string &key, const std::string &pattern);
+  Assertions &status_codes(const std::vector<int> &expected_codes);
+  Assertions &header(const std::string &key, const std::string &expected_value);
+  Assertions &json_field(const std::string &key, const std::string &pattern);
 
   std::optional<FailedAssertion> validate(const Response &response) const;
 
@@ -33,7 +33,7 @@ private:
   std::vector<std::pair<std::string, std::string>> expected_headers;
   std::vector<std::pair<std::string, Regex>> expected_json_fields;
 
-  Assertion();
+  Assertions();
 
   std::optional<FailedAssertion>
   validate_status_code(const Response &response) const;
