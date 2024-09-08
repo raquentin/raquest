@@ -20,17 +20,17 @@ Custom-Header: custom_value
 [body type="json"]
 {
   "title": "foo",
-  "body": "bar",
-  "userId": 1
+  "age": 30,
+  "isActive": true,
+  "description": "here is the description"
 }
 
-[assertion on="status"]
-201
-
-[assertion on="response"]
-{
-  "message": "foo"
-}
+[assertions]
+status: 201
+json_field: title ^foo$
+json_field: age 30
+json_field: isActive true
+json_field: description here is the description
 ```
 
 ### v1 todo-list
@@ -38,18 +38,18 @@ Custom-Header: custom_value
 - [x] support json in files
 - [x] support for headers
 - [ ] cookies
-- [x] good parser errors
+- [ ] good parser errors
 - [ ] lsp
-- [x] tests of any sort
+- [ ] tests of any sort
 - [ ] docs
 - [ ] logging
-- [ ] assertions
-- [x] ci
+- [x] assertions
+- [ ] ci
 
 ## Development
 
 ### Dependencies
-- cmake 3.22+
+- cmake 3.24+
 - g++ 14
 
 ### Running Tests
