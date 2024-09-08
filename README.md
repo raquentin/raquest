@@ -6,40 +6,55 @@ Raquest is a batteries-excluded command-line HTTP client. No monthly subscriptio
 
 ### `.raq` files
 
-Requests with 'raquest' are written in `'.raq'` files. They are similar to writing `curl` commands in bash scripts.
+Requests are stored written in `'.raq'` files and resemble `curl` commands in bash scripts. The files consist of sections defining the request, its headers, its json payload, and assertions, which assert certain attributes of the repsonse. View these sections in action in the [examples](/examples) or conceptually below:
 
+#### [request]
 ```
 [request]
 POST https://jsonplaceholder.typicode.com/posts
+```
+The `[request]` section is generally found at the top of the file and defines the HTTP method and the target url.
 
+#### [headers]
+```
 [headers]
 Authorization: Bearer exampletoken12345
 Content-Type: application/json
 Custom-Header: custom_value
+```
+The `[headers]` section defines key-value header pairs.
 
-[body type="json"]
+#### [body]
+```
+[body]
 {
   "title": "foo",
   "age": 30,
   "isActive": true,
   "description": "here is the description"
 }
+```
+The `[body]` section contains the request payload; its type is inferred from the `Content-Type` header in the `[headers]` section.
 
+#### [assertions]
+```
 [assertions]
-status: 201
+status: 201, 303
 json_field: title ^foo$
 json_field: age 30
 json_field: isActive true
 json_field: description here is the description
 ```
+`[assertions]` is an optional section that allows you to assert certain attributes of your request's response.
 
-### v1 todo-list
+## Todos for v1
 - [x] support all request types
 - [x] support json in files
 - [x] support for headers
 - [ ] cookies
 - [ ] good parser errors
 - [ ] lsp
+- [ ] support all std body types
 - [ ] tests of any sort
 - [ ] docs
 - [ ] logging
@@ -54,11 +69,11 @@ json_field: description here is the description
 
 ### Running Tests
 ```bash
-    mkdir -p build \
-    cd build \
-    cmake .. \
-    cmake --build . \
-    ctest
+mkdir -p build \
+cd build \
+cmake .. \
+cmake --build . \
+ctest
 ```
 
 ### Clangd Setup
