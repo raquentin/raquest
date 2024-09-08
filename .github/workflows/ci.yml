@@ -1,34 +1,54 @@
-name: C++ CI
+name: CI Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up CMake
-      uses: lukka/get-cmake@v3.21.1
+      # Set up CMake
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v1
 
-    - name: Install dependencies
-      run: sudo apt-get install -y libcurl4-openssl-dev
+      # Install GCC and Clang linters (optional)
+      - name: Install compilers and tools
+        run: sudo apt-get install -y gcc clang clang-tidy cppcheck
 
-    - name: Install Google Test
-      run: |
-        sudo apt-get install -y libgtest-dev
-        cd /usr/src/gtest
-        sudo cmake .
-        sudo make
-        sudo cp *.a /usr/lib
+      # Install dependencies using FetchContent (build all)
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+      
+      # Build the project
+      - name: Build the project
+        run: |
+          cd build
+          make
 
-    - name: Configure project
-      run: cmake -S . -B build
+      # Run Google Tests
+      - name: Run tests
+        run: |
+          cd build
+          ctest --output-on-failure
 
-    - name: Build project
-      run: cmake --build build
+      # Run linter (optional, using clang-tidy or cppcheck)
+      - name: Run linter (cppcheck)
+        run: |
+          cppcheck --enable=all --inconclusive --error-exitcode=1 src
 
-    - name: Run Tests
-      run: ctest --test-dir build
+      - name: Run clang-tidy
+        run: |
+          clang-tidy src/*.cpp -- -std=c++23
