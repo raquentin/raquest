@@ -1,6 +1,6 @@
-# 🏓 raquest (raq)
+# 🏓 raquest
 
-Raquest is a batteries-excluded command-line HTTP client built Insomnia and Postman are trash. No monthly subscriptions or two minute ads to send raquests, just run `raq -f <query_name>.raq` and move on with your life.
+Raquest is a batteries-excluded command-line HTTP client. No monthly subscriptions or two minute ads to send raquests, just run `raq <query>.raq` and move on with your life.
 
 ## Features
 
