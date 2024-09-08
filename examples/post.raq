@@ -1,5 +1,5 @@
 [request]
-POST "https://jsonplaceholder.typicode.com/posts"
+POST https://jsonplaceholder.typicode.com/posts
 
 [headers]
 Authorization: Bearer exampletoken12345
@@ -9,14 +9,14 @@ Custom-Header: custom_value
 [body type="json"]
 {
   "title": "foo",
-  "body": "bar",
-  "userId": 1
+  "age": 30,
+  "isActive": true,
+  "description": "here is the description"
 }
 
-[assertion on="status"]
-201
-
-[assertion on="response"]
-{
-  "message": "foo"
-}
+[assertions]
+status: 201
+json_field: title ^foo$
+json_field: age 30
+json_field: isActive true
+json_field: description here is the description

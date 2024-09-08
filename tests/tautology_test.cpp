@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 TEST(Tautology, Addition) {
     EXPECT_EQ(1 + 1, 2);

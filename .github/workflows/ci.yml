@@ -1,34 +1,32 @@
-name: C++ CI
+name: CI Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-
+  build:
+    runs-on: ubuntu-24.04
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
-    - name: Set up CMake
-      uses: lukka/get-cmake@v3.21.1
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake ..
 
-    - name: Install dependencies
-      run: sudo apt-get install -y libcurl4-openssl-dev
+      - name: Build the project
+        run: |
+          cd build
+          cmake --build .
 
-    - name: Install Google Test
-      run: |
-        sudo apt-get install -y libgtest-dev
-        cd /usr/src/gtest
-        sudo cmake .
-        sudo make
-        sudo cp *.a /usr/lib
-
-    - name: Configure project
-      run: cmake -S . -B build
-
-    - name: Build project
-      run: cmake --build build
-
-    - name: Run Tests
-      run: ctest --test-dir build
+      - name: Run tests
+        run: |
+          cd build
+          ctest
