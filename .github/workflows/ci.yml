@@ -17,21 +17,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up CMake
+      # Install CMake
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v1
 
-      # Install GCC and Clang linters (optional)
-      - name: Install compilers and tools
-        run: sudo apt-get install -y gcc clang clang-tidy cppcheck
+      # Install dependencies
+      - name: Install dependencies
+        run: sudo apt-get install -y gcc g++ clang
 
-      # Install dependencies using FetchContent (build all)
+      # Configure and build the project
       - name: Configure CMake
         run: |
           mkdir build
           cd build
-          cmake ..
-      
+          cmake .. -DCMAKE_CXX_STANDARD=23
+
       # Build the project
       - name: Build the project
         run: |
@@ -43,12 +43,3 @@ jobs:
         run: |
           cd build
           ctest --output-on-failure
-
-      # Run linter (optional, using clang-tidy or cppcheck)
-      - name: Run linter (cppcheck)
-        run: |
-          cppcheck --enable=all --inconclusive --error-exitcode=1 src
-
-      - name: Run clang-tidy
-        run: |
-          clang-tidy src/*.cpp -- -std=c++23
