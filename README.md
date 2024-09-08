@@ -1,6 +1,6 @@
 # 🏓 raquest
 
-Raquest is a batteries-excluded command-line HTTP client. No monthly subscriptions or two minute ads to send raquests, just run `raq <query>.raq` and move on with your life.
+Raquest is a batteries-excluded command-line HTTP client. No monthly subscriptions or two minute ads to send requests, just run `raq <query>.raq` and move on with your life.
 
 ## Features
 
