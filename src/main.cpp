@@ -1,5 +1,5 @@
-#include "cli.hpp"
 #include "parser.hpp"
+#include <CLI/CLI.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>

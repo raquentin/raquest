@@ -1,7 +1,7 @@
 #include "response.hpp"
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 int Response::get_status_code() const { return status_code; }
 

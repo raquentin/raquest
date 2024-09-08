@@ -1,5 +1,4 @@
 #include "parser.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <optional>

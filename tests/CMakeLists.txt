@@ -6,6 +6,5 @@ target_link_libraries(raquest_test gtest gtest_main raquestlib)
 
 add_test(NAME test COMMAND raquest_test)
 
-# curl
-find_package(CURL REQUIRED)
-target_link_libraries(raquest_test CURL::libcurl)
+target_link_libraries(raquest_test CURL::libcurl CLI11::CLI11
+                      nlohmann_json::nlohmann_json)
