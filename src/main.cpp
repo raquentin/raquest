@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
   app.add_flag("-v,--version", "print version and exit");
   std::string file_url;
-  app.add_option("-f,--file", file_url, "specify a .raq file")->required();
+  app.add_option("pos1,-f,--file", file_url, "specify a .raq file")->required()->check(CLI::ExistingFile);
 
   CLI11_PARSE(app, argc, argv);
 
