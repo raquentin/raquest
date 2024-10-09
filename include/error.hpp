@@ -9,9 +9,15 @@ enum class ErrorType {
   UnexpectedEndOfFile,
 };
 
-struct Error {
+class Error {
+public:
+  Error(ErrorType type, const std::string &line_content, int line_number, int column_number);
+  std::string pretty_sprint() const;
+  friend std::ostream &operator<<(std::ostream &os, const Error &error);
+
+private:
   ErrorType type;
-  std::string message;
+  std::string line_content;
   int line_number;
   int column_number;
 };

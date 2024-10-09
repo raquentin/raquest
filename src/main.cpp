@@ -21,10 +21,12 @@ int main(int argc, char **argv) {
     auto request = parser.parse();
     if (!request.has_value()) {
       for (auto error : parser.get_errors()) {
-        std::cerr << error.message << std::endl;
+        std::cerr << error << std::endl;
       }
+      return 1;
     }
     request->execute();
+  // TODO: all errors as values, no try/catch
   } catch (const std::exception &ex) {
     std::cerr << "error: " << ex.what() << std::endl;
     return 1;

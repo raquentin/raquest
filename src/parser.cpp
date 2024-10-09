@@ -44,9 +44,8 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
       } else if (line->find("[assertion") != std::string::npos) {
         parse_assertion(request);
       } else {
-        errors.push_back(Error(ErrorType::MalinformedSectionHeader,
-                               "Unrecognized section header: " + *line,
-                               line_number, column_number));
+        errors.emplace_back(Error(ErrorType::MalinformedSectionHeader, *line,
+                                  line_number, column_number));
       }
     }
   }
@@ -61,9 +60,8 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
 void Parser::parse_request(Request &request) {
   auto line = next_line();
   if (!line.has_value()) {
-    errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
-                           "Expected HTTP method and URL", line_number,
-                           column_number));
+    errors.emplace_back(Error(ErrorType::UnexpectedEndOfFile, *line,
+                              line_number, column_number));
     return;
   }
 
@@ -72,10 +70,8 @@ void Parser::parse_request(Request &request) {
   iss >> method >> url;
 
   if (method.empty() || url.empty()) {
-    errors.push_back(
-        Error(ErrorType::ExpectedIdentifier,
-              "Invalid request line. Expected HTTP method and URL.",
-              line_number, column_number));
+    errors.emplace_back(Error(ErrorType::ExpectedIdentifier, *line, line_number,
+                              column_number));
   }
 
   request.set_method(method);
@@ -88,9 +84,8 @@ void Parser::parse_headers(Request &request) {
          line->at(0) != '[') {
     size_t colon_pos = line->find(':');
     if (colon_pos == std::string::npos) {
-      errors.push_back(Error(ErrorType::UnexpectedCharacter,
-                             "Expected ':' in header line", line_number,
-                             column_number));
+      errors.emplace_back(Error(ErrorType::UnexpectedCharacter, *line,
+                                line_number, column_number));
       continue;
     }
 
@@ -154,9 +149,8 @@ void Parser::parse_assertion(Request &request) {
     } else if (line->find("json_field") != std::string::npos) {
       size_t colon_pos = line->find(':');
       if (colon_pos == std::string::npos) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Invalid json_field syntax", line_number,
-                               column_number));
+        errors.emplace_back(Error(ErrorType::ExpectedIdentifier, *line,
+                                  line_number, column_number));
         return;
       }
 
@@ -164,9 +158,8 @@ void Parser::parse_assertion(Request &request) {
 
       size_t value_start = line->find(' ', field_start);
       if (value_start == std::string::npos) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Invalid json_field syntax: missing value",
-                               line_number, column_number));
+        errors.emplace_back(Error(ErrorType::ExpectedIdentifier, *line,
+                                  line_number, column_number));
         return;
       }
 
@@ -175,9 +168,8 @@ void Parser::parse_assertion(Request &request) {
           line->substr(value_start + 1); // everything after the first space
 
       if (field.empty()) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Field name cannot be empty", line_number,
-                               column_number));
+        errors.emplace_back(Error(ErrorType::ExpectedIdentifier, *line,
+                                  line_number, column_number));
         return;
       }
 
