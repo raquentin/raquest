@@ -1,0 +1,11 @@
+[malinformed]
+POST https://jsonplaceholder.typicode.com/posts
+
+[headers]
+Authorization: Bearer exampletoken12345
+Content-Type: application/json
+
+[body type="json"]
+{
+  "key": "value"
+}
