@@ -1,8 +1,8 @@
-set(TEST_SOURCE_FILES tautology_test.cpp parser_test.cpp)
+set(TEST_SOURCE_FILES tautology_test.cpp assertions_test.cpp)
 
 add_executable(raquest_test ${TEST_SOURCE_FILES})
 
-target_link_libraries(raquest_test gtest gtest_main raquestlib)
+target_link_libraries(raquest_test gtest gtest_main gmock raquestlib pthread)
 
 add_test(NAME test COMMAND raquest_test)
 

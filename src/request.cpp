@@ -17,7 +17,6 @@ void Request::set_method(const std::string &method) { this->method = method; }
 void Request::set_url(const std::string &url) { this->url = url; }
 
 void Request::add_header(const std::string &key, const std::string &value) {
-  // TODO: smart validation of key and value mapping against stds
   headers.push_back(key + ": " + value);
 }
 
