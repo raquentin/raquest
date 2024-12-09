@@ -40,7 +40,8 @@ Assertions::validate(const Response &response) const {
 std::optional<FailedAssertion>
 Assertions::validate_status_code(const Response &response) const {
   int status_code = response.get_status_code();
-  if (std::find(expected_status_codes.begin(), expected_status_codes.end(),
+  if (!expected_status_codes.empty() &&
+      std::find(expected_status_codes.begin(), expected_status_codes.end(),
                 status_code) == expected_status_codes.end()) {
     std::stringstream ss;
     ss << "Expected one of these status codes: ";
@@ -90,11 +91,10 @@ Assertions::validate_json_fields(const Response &response) const {
     }
 
     if (!std::regex_match(val, pattern.get_regex())) {
-      return FailedAssertion(FailedAssertionType::UnexpectedJsonField,
-                             "Expected json field '" + key +
-                                 "' to match pattern '" +
-                                 pattern.get_pattern() +
-                                 "' but it didn't, it was '" + val + "'");
+      return FailedAssertion(
+          FailedAssertionType::UnexpectedJsonField,
+          "Expected json field '" + key + "' to match pattern '" +
+              pattern.get_pattern() + "' but it didn't, it was '" + val + "'");
     }
   }
   return std::nullopt;
