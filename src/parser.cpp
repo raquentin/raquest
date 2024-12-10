@@ -1,11 +1,25 @@
 #include "parser.hpp"
+#include "errors/parser_error.hpp"
 #include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <sstream>
 
-Parser::Parser(const std::string &input)
-    : input(input), position(0), line_number(1), column_number(1) {}
+Parser::Parser(const std::string &file_url)
+    : file_name(file_url), position(0), line_number(1), column_number(1) {
+
+  std::ifstream file(file_url, std::ios::in | std::ios::binary);
+
+  if (!file) {
+    throw std::runtime_error("Failed to open file: " + file_url);
+  }
+
+  input.assign((std::istreambuf_iterator<char>(file)),
+               std::istreambuf_iterator<char>());
+
+  file.close();
+}
 
 std::optional<std::string> Parser::next_line() {
   if (position >= input.size())
@@ -26,7 +40,7 @@ std::optional<std::string> Parser::next_line() {
   return input.substr(start, position - start - 1);
 }
 
-std::expected<Request, std::vector<Error>> Parser::parse() {
+std::expected<Request, std::vector<ParserError>> Parser::parse() {
   Request request("", "");
   std::optional<std::string> line;
 
@@ -44,9 +58,16 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
       } else if (line->find("[assertion") != std::string::npos) {
         parse_assertion(request);
       } else {
-        errors.push_back(Error(ErrorType::MalinformedSectionHeader,
-                               "Unrecognized section header: " + *line,
-                               line_number, column_number));
+        if (line->find("[request") != std::string::npos) {
+          const Hint hint = Hint{
+            std::pair<int, int>(3, 4),
+            "missing closing bracket ^"
+          };
+          const MalformedSectionHeaderInfo& info = {"missing closing bracket", line_number,
+                                             *line, std::optional<Hint>(hint)};
+          errors.emplace_back(
+              ParserError(file_name, info, ErrorSeverity::Error));
+        }
       }
     }
   }
@@ -61,9 +82,9 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
 void Parser::parse_request(Request &request) {
   auto line = next_line();
   if (!line.has_value()) {
-    errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
-                           "Expected HTTP method and URL", line_number,
-                           column_number));
+    // errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
+    //                        "Expected HTTP method and URL", line_number,
+    //                        column_number));
     return;
   }
 
@@ -72,10 +93,10 @@ void Parser::parse_request(Request &request) {
   iss >> method >> url;
 
   if (method.empty() || url.empty()) {
-    errors.push_back(
-        Error(ErrorType::ExpectedIdentifier,
-              "Invalid request line. Expected HTTP method and URL.",
-              line_number, column_number));
+    // errors.push_back(
+    //     Error(ErrorType::ExpectedIdentifier,
+    //           "Invalid request line. Expected HTTP method and URL.",
+    //           line_number, column_number));
   }
 
   request.set_method(method);
@@ -88,9 +109,9 @@ void Parser::parse_headers(Request &request) {
          line->at(0) != '[') {
     size_t colon_pos = line->find(':');
     if (colon_pos == std::string::npos) {
-      errors.push_back(Error(ErrorType::UnexpectedCharacter,
-                             "Expected ':' in header line", line_number,
-                             column_number));
+      // errors.push_back(Error(ErrorType::UnexpectedCharacter,
+      //                        "Expected ':' in header line", line_number,
+      //                        column_number));
       continue;
     }
 
@@ -154,9 +175,9 @@ void Parser::parse_assertion(Request &request) {
     } else if (line->find("json_field") != std::string::npos) {
       size_t colon_pos = line->find(':');
       if (colon_pos == std::string::npos) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Invalid json_field syntax", line_number,
-                               column_number));
+        // errors.push_back(Error(ErrorType::ExpectedIdentifier,
+        //                        "Invalid json_field syntax", line_number,
+        //                        column_number));
         return;
       }
 
@@ -164,9 +185,9 @@ void Parser::parse_assertion(Request &request) {
 
       size_t value_start = line->find(' ', field_start);
       if (value_start == std::string::npos) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Invalid json_field syntax: missing value",
-                               line_number, column_number));
+        // errors.push_back(Error(ErrorType::ExpectedIdentifier,
+        //                        "Invalid json_field syntax: missing value",
+        //                        line_number, column_number));
         return;
       }
 
@@ -175,9 +196,9 @@ void Parser::parse_assertion(Request &request) {
           line->substr(value_start + 1); // everything after the first space
 
       if (field.empty()) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Field name cannot be empty", line_number,
-                               column_number));
+        // errors.push_back(Error(ErrorType::ExpectedIdentifier,
+        //                        "Field name cannot be empty", line_number,
+        //                        column_number));
         return;
       }
 
@@ -198,5 +219,3 @@ void Parser::parse_assertion(Request &request) {
 
   request.set_assertions(assertions);
 }
-
-std::vector<Error> Parser::get_errors() const { return errors; }
