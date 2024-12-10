@@ -1,5 +1,6 @@
 #pragma once
-#include "error.hpp"
+#include "errors/error.hpp"
+#include "errors/parser_error.hpp"
 #include "request.hpp"
 #include <expected>
 #include <optional>
@@ -10,16 +11,16 @@ enum class HttpMethod { GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, UNKNOWN };
 
 class Parser {
 public:
-  Parser(const std::string &input);
-  std::expected<Request, std::vector<Error>> parse();
-  std::vector<Error> get_errors() const;
+  Parser(const std::string &file_name);
+  std::expected<Request, std::vector<ParserError>> parse();
+  std::vector<ParserError> errors;
 
 private:
   std::string input;
+  std::string file_name;
   size_t position;
   int line_number;
   int column_number;
-  std::vector<Error> errors;
 
   std::optional<std::string> next_line();
   void parse_request(Request &request);
