@@ -47,38 +47,24 @@ json_field: description here is the description
 ```
 `[assertions]` is an optional section that allows you to assert certain attributes of your request's response.
 
-## Todos for v1
-- [x] support all request types
-- [x] support json in files
-- [x] support for headers
-- [ ] cookies
-- [ ] suggestive parser errors
-- [ ] lsp
-- [ ] support xml, plain, form, multipart, encoded
-- [ ] good parser coverage
-- [ ] mocked libcurl/fake server
-- [ ] honorable usage docs
-- [ ] decent contrib docs
-- [ ] logging
-- [x] assertions
-- [ ] build & test ci on linux, win, macos
-
 ## Development
 
 ### Dependencies
-- cmake 3.24+
-- g++ 14
+- cmake 3.24
+- clang 18 and/or gcc 14
 
 ### Running Tests
 ```bash
-mkdir -p build \
-cd build \
-cmake .. \
-cmake --build . \
+mkdir build && \
+cd build && \
+cmake .. && \
+cmake --build . && \
 ctest
 ```
 
 ### Clangd Setup
+I'm using the Clangd C++ LSP. Run the command below to make it aware of your linked libraries.
+
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```
