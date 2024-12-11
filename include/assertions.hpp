@@ -1,7 +1,6 @@
 #pragma once
 #include "regex.hpp"
 #include "response.hpp"
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -22,11 +21,11 @@ class Assertions {
 public:
   static Assertions create();
 
-  Assertions &status_codes(const std::vector<int> &expected_codes);
-  Assertions &header(const std::string &key, const std::string &expected_value);
-  Assertions &json_field(const std::string &key, const std::string &pattern);
+  Assertions &set_status_codes(const std::vector<int> &expected_codes);
+  Assertions &set_header(const std::string &key, const std::string &expected_value);
+  Assertions &set_json_field(const std::string &key, const std::string &pattern);
 
-  std::optional<FailedAssertion> validate(const Response &response) const;
+  std::vector<FailedAssertion> validate(const Response &response) const;
 
 private:
   std::vector<int> expected_status_codes;
@@ -35,10 +34,10 @@ private:
 
   Assertions();
 
-  std::optional<FailedAssertion>
+  std::vector<FailedAssertion>
   validate_status_code(const Response &response) const;
-  std::optional<FailedAssertion>
+  std::vector<FailedAssertion>
   validate_header(const Response &response) const;
-  std::optional<FailedAssertion>
+  std::vector<FailedAssertion>
   validate_json_fields(const Response &response) const;
 };
