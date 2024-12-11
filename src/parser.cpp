@@ -166,12 +166,12 @@ void Parser::parse_assertion(Request &request) {
           iss.ignore();
         }
       }
-      assertions.status_codes(status_codes);
+      assertions.set_status_codes(status_codes);
     } else if (line->find("header") != std::string::npos) {
       size_t equals_pos = line->find('=');
       std::string key = line->substr(7, equals_pos - 7); // Remove "header: "
       std::string value = line->substr(equals_pos + 1);
-      assertions.header(key, value);
+      assertions.set_header(key, value);
     } else if (line->find("json_field") != std::string::npos) {
       size_t colon_pos = line->find(':');
       if (colon_pos == std::string::npos) {
@@ -204,15 +204,15 @@ void Parser::parse_assertion(Request &request) {
 
       // intelligent type inference (regex, number, boolean, or string match)
       if (value == "true" || value == "false") {
-        assertions.json_field(field, value); // boolean field
+        assertions.set_json_field(field, value); // boolean field
       } else if (std::regex_match(value, std::regex("^-?\\d+(\\.\\d+)?$"))) {
-        assertions.json_field(field, value); // number
+        assertions.set_json_field(field, value); // number
       } else {
         // it's a string or regex pattern
         if (value.front() != '^' && value.back() != '$') {
           value = "^" + value + "$"; // regex wrap
         }
-        assertions.json_field(field, value);
+        assertions.set_json_field(field, value);
       }
     }
   }
