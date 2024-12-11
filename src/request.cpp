@@ -27,8 +27,8 @@ void Request::set_assertions(const Assertions &assertions) {
 }
 
 void Request::check_assertions(const Response &response) const {
-  if (auto err = assertions.validate(response)) {
-    std::cerr << "Assertion failed: " << err->message << std::endl;
+  for (auto &err : assertions.validate(response)) {
+    std::cerr << "Assertion failed: " << err.message << std::endl;
   }
 }
 
