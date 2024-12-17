@@ -1,14 +1,21 @@
 #include "request.hpp"
 #include "assertions.hpp"
+#include "errors/error_manager.hpp"
+#include "errors/runtime_error.hpp"
+#include "printer.hpp"
 #include <cstddef>
 #include <curl/easy.h>
 #include <iostream>
 
-Request::Request(const std::string &method, const std::string &url)
-    : method(method), url(url), curl(curl_easy_init()),
+Request::Request(const std::string &file_name, const std::string &method,
+                 const std::string &url, ErrorManager &error_manager)
+    : file_name_(file_name), method(method), url(url),
+      error_manager_(error_manager), curl(curl_easy_init()),
       assertions(Assertions::create()) {
   if (!curl) {
-    throw std::runtime_error("failed to initialize curl");
+    error_manager_.add_error(std::make_shared<RuntimeError>(
+        file_name_, "failed to initiate libcurl", ErrorSeverity::Error,
+        RuntimeErrorType::Curl));
   }
 }
 
@@ -47,9 +54,7 @@ size_t Request::HeaderCallback(char *buffer, size_t size, size_t nitems,
 }
 
 void Request::execute() const {
-  if (!curl) {
-    throw std::runtime_error("curl is not initialized");
-  }
+  print_running(file_name_);
 
   struct curl_slist *curl_headers = nullptr;
   for (const auto &header : headers) {
@@ -74,8 +79,9 @@ void Request::execute() const {
 
   CURLcode res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    throw std::runtime_error("CURL request failed: " +
-                             std::string(curl_easy_strerror(res)));
+    error_manager_.add_error(std::make_shared<RuntimeError>(
+        file_name_, std::string(curl_easy_strerror(res)), ErrorSeverity::Error,
+        RuntimeErrorType::Curl));
   }
 
   long http_code = 0;
@@ -88,7 +94,10 @@ void Request::execute() const {
 
   std::cout << response_data << std::endl;
 
-  check_assertions(response);
+  // if there's no errors, go ahead with assertions.
+  if (error_manager_.get_errors().empty()) {
+    check_assertions(response);
+  }
 }
 
 const std::string &Request::get_method() const { return method; }

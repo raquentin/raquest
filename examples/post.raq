@@ -1,5 +1,5 @@
 [request]
-POST https://jsonplaceholder.typicode.com/posts
+POST https://jsonplaceholder.tpicode.com/posts
 
 [headers]
 Authorization: Bearer exampletoken12345
