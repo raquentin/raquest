@@ -22,14 +22,14 @@ struct MalformedSectionHeaderInfo {
 
 class ParserError : public Error {
 public:
-  ParserError(const std::string &fileName,
+  ParserError(const std::string &file_name,
               const MalformedSectionHeaderInfo &info,
               const ErrorSeverity severity);
 
   void print_details() const override;
 
 private:
-  std::string fileName_;
+  std::string file_name_;
   ParserErrorType type_;
   std::variant<MalformedSectionHeaderInfo> info_;
 };

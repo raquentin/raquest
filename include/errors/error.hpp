@@ -5,9 +5,8 @@
 
 enum class ErrorKind {
   ParserError,
-  NetworkError,
+  RuntimeError,
   AssertionError,
-  InternalError,
 };
 
 enum class ErrorSeverity {
@@ -30,12 +29,10 @@ public:
     switch (kind) {
     case ErrorKind::ParserError:
       return "parser";
-    case ErrorKind::NetworkError:
-      return "network";
     case ErrorKind::AssertionError:
       return "assertion";
-    case ErrorKind::InternalError:
-      return "internal";
+    case ErrorKind::RuntimeError:
+      return "runtime";
     }
   }
 
@@ -62,7 +59,8 @@ public:
 
     // *padding* -->
     // in cyan
-    fmt::print(fg(fmt::terminal_color::bright_black) | fmt::emphasis::bold, "   --> ");
+    fmt::print(fg(fmt::terminal_color::bright_black) | fmt::emphasis::bold,
+               "   --> ");
 
     // <file_>
     fmt::print("{}\n", file_);
@@ -70,8 +68,8 @@ public:
     // error-specific details
     print_details();
 
-    // end bar
-    fmt::print(fg(fmt::color::cyan), "----\n");
+    // end with newline to separate errors
+    fmt::print("\n");
   }
 
   ErrorKind get_code() const { return kind_; }
@@ -85,3 +83,7 @@ protected:
   std::string file_;
   ErrorSeverity severity_;
 };
+
+inline std::string as_whitespace(int spaces) {
+  return std::string(spaces, ' ');
+}

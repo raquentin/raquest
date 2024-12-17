@@ -1,18 +1,26 @@
 #include "parser.hpp"
+#include "errors/error.hpp"
+#include "errors/error_manager.hpp"
+#include "errors/runtime_error.hpp"
+#include "printer.hpp"
 #include "errors/parser_error.hpp"
 #include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <sstream>
 
-Parser::Parser(const std::string &file_url)
-    : file_name(file_url), position(0), line_number(1), column_number(1) {
+Parser::Parser(const std::string &file_name, ErrorManager &error_manager)
+    : file_name(file_name), error_manager(error_manager), position(0),
+      line_number(1), column_number(1) {
 
-  std::ifstream file(file_url, std::ios::in | std::ios::binary);
+  std::ifstream file(file_name, std::ios::in | std::ios::binary);
 
   if (!file) {
-    throw std::runtime_error("Failed to open file: " + file_url);
+    error_manager.add_error(std::make_shared<RuntimeError>(
+      file_name, "failed to open file: " + file_name, ErrorSeverity::Error, RuntimeErrorType::Internal
+    ));
   }
 
   input.assign((std::istreambuf_iterator<char>(file)),
@@ -40,9 +48,11 @@ std::optional<std::string> Parser::next_line() {
   return input.substr(start, position - start - 1);
 }
 
-std::expected<Request, std::vector<ParserError>> Parser::parse() {
-  Request request("", "");
+std::optional<std::shared_ptr<Request>> Parser::parse() {
+  Request request(file_name, "", "", error_manager);
   std::optional<std::string> line;
+
+  print_compiling(file_name);
 
   while ((line = next_line()).has_value()) {
     if (line->empty() || line->at(0) == '#')
@@ -58,25 +68,27 @@ std::expected<Request, std::vector<ParserError>> Parser::parse() {
       } else if (line->find("[assertion") != std::string::npos) {
         parse_assertion(request);
       } else {
+        // TODO: generalize this error
         if (line->find("[request") != std::string::npos) {
-          const Hint hint = Hint{
-            std::pair<int, int>(3, 4),
-            "missing closing bracket ^"
-          };
-          const MalformedSectionHeaderInfo& info = {"missing closing bracket", line_number,
-                                             *line, std::optional<Hint>(hint)};
-          errors.emplace_back(
+          const Hint hint =
+              Hint{std::pair<int, int>(3, 4), "missing closing bracket ^"};
+          const MalformedSectionHeaderInfo &info = {"missing closing bracket",
+                                                    line_number, *line,
+                                                    std::optional<Hint>(hint)};
+          auto error = std::make_shared<ParserError>(
               ParserError(file_name, info, ErrorSeverity::Error));
+          error_manager.add_error(error);
         }
       }
     }
   }
 
-  if (!errors.empty()) {
-    return std::unexpected(errors);
+  // Checking size and returning here so that we can catch multiple parser
+  // errors, not just returning after the first one.
+  if (error_manager.get_errors().empty()) {
+    return std::make_shared<Request>(request);
   }
-
-  return request;
+  return std::nullopt;
 }
 
 void Parser::parse_request(Request &request) {
