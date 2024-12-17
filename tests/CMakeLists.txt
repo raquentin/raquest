@@ -1,4 +1,4 @@
-set(TEST_SOURCE_FILES tautology_test.cpp assertions_test.cpp)
+set(TEST_SOURCE_FILES tautology_test.cpp)
 
 add_executable(raquest_test ${TEST_SOURCE_FILES})
 

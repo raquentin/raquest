@@ -12,6 +12,7 @@ enum class ErrorKind {
 enum class ErrorSeverity {
   Error,
   Warning,
+  FailedAssertion,
 };
 
 class Error {

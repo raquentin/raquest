@@ -25,5 +25,5 @@ private:
   void parse_request(Request &request);
   void parse_headers(Request &request);
   void parse_body(Request &request);
-  void parse_assertion(Request &request);
+  AssertionSet parse_assertions();
 };
