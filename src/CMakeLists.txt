@@ -1,4 +1,12 @@
-set(SOURCE_FILES parser.cpp request.cpp assertions.cpp response.cpp)
+set(SOURCE_FILES
+    parser.cpp
+    request.cpp
+    assert.cpp
+    response.cpp
+    errors/parser_error.cpp
+    errors/error_manager.cpp
+    errors/assertion_error.cpp
+    errors/runtime_error.cpp)
 
 add_library(raquestlib ${SOURCE_FILES})
 

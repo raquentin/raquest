@@ -1,11 +1,35 @@
 #include "parser.hpp"
+#include "assert.hpp"
+#include "errors/error.hpp"
+#include "errors/error_manager.hpp"
+#include "errors/parser_error.hpp"
+#include "errors/runtime_error.hpp"
+#include "printer.hpp"
 #include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <sstream>
+#include <utility>
 
-Parser::Parser(const std::string &input)
-    : input(input), position(0), line_number(1), column_number(1) {}
+Parser::Parser(const std::string &file_name, ErrorManager &error_manager)
+    : file_name(file_name), error_manager(error_manager), position(0),
+      line_number(1), column_number(1) {
+
+  std::ifstream file(file_name, std::ios::in | std::ios::binary);
+
+  if (!file) {
+    error_manager.add_error(std::make_shared<RuntimeError>(
+        file_name, "failed to open file: " + file_name, ErrorSeverity::Error,
+        RuntimeErrorType::Internal));
+  }
+
+  input.assign((std::istreambuf_iterator<char>(file)),
+               std::istreambuf_iterator<char>());
+
+  file.close();
+}
 
 std::optional<std::string> Parser::next_line() {
   if (position >= input.size())
@@ -26,9 +50,11 @@ std::optional<std::string> Parser::next_line() {
   return input.substr(start, position - start - 1);
 }
 
-std::expected<Request, std::vector<Error>> Parser::parse() {
-  Request request("", "");
+std::optional<std::shared_ptr<Request>> Parser::parse() {
+  Request request(file_name, "", "", error_manager);
   std::optional<std::string> line;
+
+  print_compiling(file_name);
 
   while ((line = next_line()).has_value()) {
     if (line->empty() || line->at(0) == '#')
@@ -42,28 +68,37 @@ std::expected<Request, std::vector<Error>> Parser::parse() {
       } else if (line->find("[body") != std::string::npos) {
         parse_body(request);
       } else if (line->find("[assertion") != std::string::npos) {
-        parse_assertion(request);
+        request.set_assertion_set(parse_assertions());
       } else {
-        errors.push_back(Error(ErrorType::MalinformedSectionHeader,
-                               "Unrecognized section header: " + *line,
-                               line_number, column_number));
+        // TODO: generalize this error
+        if (line->find("[request") != std::string::npos) {
+          const Hint hint =
+              Hint{std::pair<int, int>(3, 4), "missing closing bracket ^"};
+          const MalformedSectionHeaderInfo &info = {"missing closing bracket",
+                                                    line_number, *line,
+                                                    std::optional<Hint>(hint)};
+          auto error = std::make_shared<ParserError>(
+              ParserError(file_name, info, ErrorSeverity::Error));
+          error_manager.add_error(error);
+        }
       }
     }
   }
 
-  if (!errors.empty()) {
-    return std::unexpected(errors);
+  // Checking size and returning here so that we can catch multiple parser
+  // errors, not just returning after the first one.
+  if (error_manager.get_errors().empty()) {
+    return std::make_shared<Request>(request);
   }
-
-  return request;
+  return std::nullopt;
 }
 
 void Parser::parse_request(Request &request) {
   auto line = next_line();
   if (!line.has_value()) {
-    errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
-                           "Expected HTTP method and URL", line_number,
-                           column_number));
+    // errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
+    //                        "Expected HTTP method and URL", line_number,
+    //                        column_number));
     return;
   }
 
@@ -72,10 +107,10 @@ void Parser::parse_request(Request &request) {
   iss >> method >> url;
 
   if (method.empty() || url.empty()) {
-    errors.push_back(
-        Error(ErrorType::ExpectedIdentifier,
-              "Invalid request line. Expected HTTP method and URL.",
-              line_number, column_number));
+    // errors.push_back(
+    //     Error(ErrorType::ExpectedIdentifier,
+    //           "Invalid request line. Expected HTTP method and URL.",
+    //           line_number, column_number));
   }
 
   request.set_method(method);
@@ -88,9 +123,9 @@ void Parser::parse_headers(Request &request) {
          line->at(0) != '[') {
     size_t colon_pos = line->find(':');
     if (colon_pos == std::string::npos) {
-      errors.push_back(Error(ErrorType::UnexpectedCharacter,
-                             "Expected ':' in header line", line_number,
-                             column_number));
+      // errors.push_back(Error(ErrorType::UnexpectedCharacter,
+      //                        "Expected ':' in header line", line_number,
+      //                        column_number));
       continue;
     }
 
@@ -100,6 +135,7 @@ void Parser::parse_headers(Request &request) {
   }
 }
 
+// TODO: know this is json
 void Parser::parse_body(Request &request) {
   std::optional<std::string> line;
   std::stringstream body_content;
@@ -126,10 +162,10 @@ std::string trim(const std::string &str) {
   return std::string(begin, end + 1);
 }
 
-void Parser::parse_assertion(Request &request) {
+AssertionSet Parser::parse_assertions() {
   std::optional<std::string> line;
 
-  Assertions assertions = Assertions::create();
+  AssertionSet as{};
 
   while ((line = next_line()).has_value() && !line->empty() &&
          line->at(0) != '[') {
@@ -140,34 +176,31 @@ void Parser::parse_assertion(Request &request) {
       std::vector<int> status_codes;
       int code;
       while (iss >> code) {
-        status_codes.push_back(code);
+        as.expected_status_codes.push_back(code);
         if (iss.peek() == ',') {
           iss.ignore();
         }
       }
-      assertions.status_codes(status_codes);
     } else if (line->find("header") != std::string::npos) {
       size_t equals_pos = line->find('=');
       std::string key = line->substr(7, equals_pos - 7); // Remove "header: "
       std::string value = line->substr(equals_pos + 1);
-      assertions.header(key, value);
+      as.expected_headers.push_back(std::pair(key, value));
     } else if (line->find("json_field") != std::string::npos) {
       size_t colon_pos = line->find(':');
       if (colon_pos == std::string::npos) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Invalid json_field syntax", line_number,
-                               column_number));
-        return;
+        // errors.push_back(Error(ErrorType::ExpectedIdentifier,
+        //                        "Invalid json_field syntax", line_number,
+        //                        column_number));
       }
 
       size_t field_start = colon_pos + 2; // skip the colon and the space
 
       size_t value_start = line->find(' ', field_start);
       if (value_start == std::string::npos) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Invalid json_field syntax: missing value",
-                               line_number, column_number));
-        return;
+        // errors.push_back(Error(ErrorType::ExpectedIdentifier,
+        //                        "Invalid json_field syntax: missing value",
+        //                        line_number, column_number));
       }
 
       std::string field = line->substr(field_start, value_start - field_start);
@@ -175,28 +208,28 @@ void Parser::parse_assertion(Request &request) {
           line->substr(value_start + 1); // everything after the first space
 
       if (field.empty()) {
-        errors.push_back(Error(ErrorType::ExpectedIdentifier,
-                               "Field name cannot be empty", line_number,
-                               column_number));
-        return;
+        // errors.push_back(Error(ErrorType::ExpectedIdentifier,
+        //                        "Field name cannot be empty", line_number,
+        //                        column_number));
       }
 
       // intelligent type inference (regex, number, boolean, or string match)
+      // TODO: this logic in general sucks
       if (value == "true" || value == "false") {
-        assertions.json_field(field, value); // boolean field
+        as.expected_json_fields.push_back(std::pair(field, value));
       } else if (std::regex_match(value, std::regex("^-?\\d+(\\.\\d+)?$"))) {
-        assertions.json_field(field, value); // number
+        as.expected_json_fields.push_back(std::pair(field, value));
       } else {
         // it's a string or regex pattern
+        // TODO: this logic is not correct
+        // should really just have a regex identifier like R"" or something
         if (value.front() != '^' && value.back() != '$') {
           value = "^" + value + "$"; // regex wrap
         }
-        assertions.json_field(field, value);
+        as.expected_json_fields.push_back(std::pair(field, value));
       }
     }
   }
 
-  request.set_assertions(assertions);
+  return as;
 }
-
-std::vector<Error> Parser::get_errors() const { return errors; }

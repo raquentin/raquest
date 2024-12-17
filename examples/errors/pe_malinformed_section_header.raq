@@ -1,0 +1,13 @@
+[request
+POST https://jsonplaceholder.typicode.com/posts
+
+[headers]
+Content-Type: application/json
+
+[body type="json"]
+{
+  "title": "bar"
+}
+
+[assertions]
+json_field: title ^foo$
