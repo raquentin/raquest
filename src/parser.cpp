@@ -1,15 +1,17 @@
 #include "parser.hpp"
+#include "assert.hpp"
 #include "errors/error.hpp"
 #include "errors/error_manager.hpp"
+#include "errors/parser_error.hpp"
 #include "errors/runtime_error.hpp"
 #include "printer.hpp"
-#include "errors/parser_error.hpp"
 #include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <utility>
 
 Parser::Parser(const std::string &file_name, ErrorManager &error_manager)
     : file_name(file_name), error_manager(error_manager), position(0),
@@ -19,8 +21,8 @@ Parser::Parser(const std::string &file_name, ErrorManager &error_manager)
 
   if (!file) {
     error_manager.add_error(std::make_shared<RuntimeError>(
-      file_name, "failed to open file: " + file_name, ErrorSeverity::Error, RuntimeErrorType::Internal
-    ));
+        file_name, "failed to open file: " + file_name, ErrorSeverity::Error,
+        RuntimeErrorType::Internal));
   }
 
   input.assign((std::istreambuf_iterator<char>(file)),
@@ -66,7 +68,7 @@ std::optional<std::shared_ptr<Request>> Parser::parse() {
       } else if (line->find("[body") != std::string::npos) {
         parse_body(request);
       } else if (line->find("[assertion") != std::string::npos) {
-        parse_assertion(request);
+        request.set_assertion_set(parse_assertions());
       } else {
         // TODO: generalize this error
         if (line->find("[request") != std::string::npos) {
@@ -133,6 +135,7 @@ void Parser::parse_headers(Request &request) {
   }
 }
 
+// TODO: know this is json
 void Parser::parse_body(Request &request) {
   std::optional<std::string> line;
   std::stringstream body_content;
@@ -159,10 +162,10 @@ std::string trim(const std::string &str) {
   return std::string(begin, end + 1);
 }
 
-void Parser::parse_assertion(Request &request) {
+AssertionSet Parser::parse_assertions() {
   std::optional<std::string> line;
 
-  Assertions assertions = Assertions::create();
+  AssertionSet as{};
 
   while ((line = next_line()).has_value() && !line->empty() &&
          line->at(0) != '[') {
@@ -173,24 +176,22 @@ void Parser::parse_assertion(Request &request) {
       std::vector<int> status_codes;
       int code;
       while (iss >> code) {
-        status_codes.push_back(code);
+        as.expected_status_codes.push_back(code);
         if (iss.peek() == ',') {
           iss.ignore();
         }
       }
-      assertions.set_status_codes(status_codes);
     } else if (line->find("header") != std::string::npos) {
       size_t equals_pos = line->find('=');
       std::string key = line->substr(7, equals_pos - 7); // Remove "header: "
       std::string value = line->substr(equals_pos + 1);
-      assertions.set_header(key, value);
+      as.expected_headers.push_back(std::pair(key, value));
     } else if (line->find("json_field") != std::string::npos) {
       size_t colon_pos = line->find(':');
       if (colon_pos == std::string::npos) {
         // errors.push_back(Error(ErrorType::ExpectedIdentifier,
         //                        "Invalid json_field syntax", line_number,
         //                        column_number));
-        return;
       }
 
       size_t field_start = colon_pos + 2; // skip the colon and the space
@@ -200,7 +201,6 @@ void Parser::parse_assertion(Request &request) {
         // errors.push_back(Error(ErrorType::ExpectedIdentifier,
         //                        "Invalid json_field syntax: missing value",
         //                        line_number, column_number));
-        return;
       }
 
       std::string field = line->substr(field_start, value_start - field_start);
@@ -211,23 +211,25 @@ void Parser::parse_assertion(Request &request) {
         // errors.push_back(Error(ErrorType::ExpectedIdentifier,
         //                        "Field name cannot be empty", line_number,
         //                        column_number));
-        return;
       }
 
       // intelligent type inference (regex, number, boolean, or string match)
+      // TODO: this logic in general sucks
       if (value == "true" || value == "false") {
-        assertions.set_json_field(field, value); // boolean field
+        as.expected_json_fields.push_back(std::pair(field, value));
       } else if (std::regex_match(value, std::regex("^-?\\d+(\\.\\d+)?$"))) {
-        assertions.set_json_field(field, value); // number
+        as.expected_json_fields.push_back(std::pair(field, value));
       } else {
         // it's a string or regex pattern
+        // TODO: this logic is not correct
+        // should really just have a regex identifier like R"" or something
         if (value.front() != '^' && value.back() != '$') {
           value = "^" + value + "$"; // regex wrap
         }
-        assertions.set_json_field(field, value);
+        as.expected_json_fields.push_back(std::pair(field, value));
       }
     }
   }
 
-  request.set_assertions(assertions);
+  return as;
 }

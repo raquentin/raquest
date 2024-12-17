@@ -8,14 +8,17 @@
 enum class RuntimeErrorType {
   Curl,
   Internal,
+  FileSystem,
 };
 
 inline std::string runtime_error_type_as_error_title(RuntimeErrorType ret) {
   switch (ret) {
-    case RuntimeErrorType::Curl:
-      return "libcurl returned an error";
-    case RuntimeErrorType::Internal:
-      return "an internal error occured";
+  case RuntimeErrorType::Curl:
+    return "libcurl returned an error";
+  case RuntimeErrorType::Internal:
+    return "an internal error occured";
+  case RuntimeErrorType::FileSystem:
+    return "a file system error occured";
   }
 }
 

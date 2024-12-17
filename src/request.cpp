@@ -1,43 +1,32 @@
 #include "request.hpp"
-#include "assertions.hpp"
+#include "assert.hpp"
 #include "errors/error_manager.hpp"
 #include "errors/runtime_error.hpp"
 #include "printer.hpp"
 #include <cstddef>
 #include <curl/easy.h>
-#include <iostream>
 
 Request::Request(const std::string &file_name, const std::string &method,
                  const std::string &url, ErrorManager &error_manager)
-    : file_name_(file_name), method(method), url(url),
-      error_manager_(error_manager), curl(curl_easy_init()),
-      assertions(Assertions::create()) {
-  if (!curl) {
+    : file_name_(file_name), method_(method), url_(url),
+      error_manager_(error_manager), curl_(curl_easy_init()),
+      assertion_set_(AssertionSet{}) {
+  if (!curl_) {
     error_manager_.add_error(std::make_shared<RuntimeError>(
         file_name_, "failed to initiate libcurl", ErrorSeverity::Error,
         RuntimeErrorType::Curl));
   }
 }
 
-void Request::set_method(const std::string &method) { this->method = method; }
+void Request::set_method(const std::string &method) { this->method_ = method; }
 
-void Request::set_url(const std::string &url) { this->url = url; }
+void Request::set_url(const std::string &url) { this->url_ = url; }
 
 void Request::add_header(const std::string &key, const std::string &value) {
-  headers.push_back(key + ": " + value);
+  headers_.push_back(key + ": " + value);
 }
 
-void Request::set_body(const std::string &json) { body = json; }
-
-void Request::set_assertions(const Assertions &assertions) {
-  this->assertions = assertions;
-}
-
-void Request::check_assertions(const Response &response) const {
-  for (auto &err : assertions.validate(response)) {
-    std::cerr << "Assertion failed: " << err.message << std::endl;
-  }
-}
+void Request::set_body(const std::string &json) { body_ = json; }
 
 size_t Request::WriteCallback(void *contents, size_t size, size_t nmemb,
                               void *userp) {
@@ -53,31 +42,31 @@ size_t Request::HeaderCallback(char *buffer, size_t size, size_t nitems,
   return header_size;
 }
 
-void Request::execute() const {
+std::optional<Response> Request::execute() const {
   print_running(file_name_);
 
   struct curl_slist *curl_headers = nullptr;
-  for (const auto &header : headers) {
+  for (const auto &header : headers_) {
     curl_headers = curl_slist_append(curl_headers, header.c_str());
   }
 
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curl_headers);
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method.c_str());
+  curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, curl_headers);
+  curl_easy_setopt(curl_, CURLOPT_URL, url_.c_str());
+  curl_easy_setopt(curl_, CURLOPT_CUSTOMREQUEST, method_.c_str());
 
-  if (!body.empty()) {
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+  if (!body_.empty()) {
+    curl_easy_setopt(curl_, CURLOPT_POSTFIELDS, body_.c_str());
   }
 
   Response response;
 
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data);
+  curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &response_data_);
 
-  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
-  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &response);
+  curl_easy_setopt(curl_, CURLOPT_HEADERFUNCTION, HeaderCallback);
+  curl_easy_setopt(curl_, CURLOPT_HEADERDATA, &response);
 
-  CURLcode res = curl_easy_perform(curl);
+  CURLcode res = curl_easy_perform(curl_);
   if (res != CURLE_OK) {
     error_manager_.add_error(std::make_shared<RuntimeError>(
         file_name_, std::string(curl_easy_strerror(res)), ErrorSeverity::Error,
@@ -85,27 +74,22 @@ void Request::execute() const {
   }
 
   long http_code = 0;
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &http_code);
   response.parse_status_code(http_code);
-  response.set_body(response_data);
+  response.set_body(response_data_);
 
   curl_slist_free_all(curl_headers);
-  curl_easy_cleanup(curl);
+  curl_easy_cleanup(curl_);
 
-  std::cout << response_data << std::endl;
-
-  // if there's no errors, go ahead with assertions.
-  if (error_manager_.get_errors().empty()) {
-    check_assertions(response);
-  }
+  return response;
 }
 
-const std::string &Request::get_method() const { return method; }
+const std::string &Request::get_method() const { return method_; }
 
-const std::string &Request::get_url() const { return url; }
+const std::string &Request::get_url() const { return url_; }
 
-const std::vector<std::string> &Request::get_headers() const { return headers; }
+const std::vector<std::string> &Request::get_headers() const { return headers_; }
 
-const std::string &Request::get_body() const { return body; }
+const std::string &Request::get_body() const { return body_; }
 
-const std::string &Request::get_response_data() const { return response_data; }
+const std::string &Request::get_response_data() const { return response_data_; }

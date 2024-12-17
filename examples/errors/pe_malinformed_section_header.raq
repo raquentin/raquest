@@ -1,7 +1,7 @@
 [request
 POST https://jsonplaceholder.typicode.com/posts
 
-[request
+[headers]
 Content-Type: application/json
 
 [body type="json"]
