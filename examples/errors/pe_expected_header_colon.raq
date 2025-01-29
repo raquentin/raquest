@@ -1,0 +1,5 @@
+[request]
+POST https://jsonplaceholder.typicode.com/posts
+
+[headers]
+Content-Type application/json

@@ -14,7 +14,7 @@ void validate(const Response &r, const AssertionSet &as, ErrorManager &em) {
       ss << code << " ";
     }
     ss << "but got " << status_code;
-    em.add_error(std::make_unique<AssertionError>(
+    em.add_error(std::make_shared<AssertionError>(
         r.get_file_name(), ss.str(), AssertionErrorType::UnexpectedStatusCode));
   }
 
@@ -25,13 +25,13 @@ void validate(const Response &r, const AssertionSet &as, ErrorManager &em) {
         ss << "Expected header '" << key << "' to have value '"
            << expected_value << "' but got '" << *value << "'";
 
-        em.add_error(std::make_unique<AssertionError>(
+        em.add_error(std::make_shared<AssertionError>(
             r.get_file_name(), ss.str(), AssertionErrorType::UnexpectedHeader));
       }
     } else {
       std::stringstream ss;
       ss << "Expected header '" << key << "' to be present but it wasn't";
-      em.add_error(std::make_unique<AssertionError>(
+      em.add_error(std::make_shared<AssertionError>(
           r.get_file_name(), ss.str(), AssertionErrorType::MissingHeader));
     }
   }
@@ -41,7 +41,7 @@ void validate(const Response &r, const AssertionSet &as, ErrorManager &em) {
 
     if (!value.has_value()) {
 
-      em.add_error(std::make_unique<AssertionError>(
+      em.add_error(std::make_shared<AssertionError>(
           r.get_file_name(),
           "Expected json field '" + key + "' to be present but it wasn't",
           AssertionErrorType::MissingJsonField));
@@ -56,7 +56,7 @@ void validate(const Response &r, const AssertionSet &as, ErrorManager &em) {
 
     if (!std::regex_match(val, pattern.get_regex())) {
 
-      em.add_error(std::make_unique<AssertionError>(
+      em.add_error(std::make_shared<AssertionError>(
           r.get_file_name(),
           "Expected json field '" + key + "' to match pattern '" +
               pattern.get_pattern() + "' but it didn't, it was '" + val + "'",

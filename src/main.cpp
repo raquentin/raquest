@@ -132,6 +132,7 @@ int main(int argc, char **argv) {
     fut.get();
   }
 
+  // printing errors done in main thread
   if (!error_manager.get_errors().empty()) {
     error_manager.print_all_errors();
     return 1;
