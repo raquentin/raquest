@@ -20,6 +20,9 @@ private:
   int column_number;
 
   ErrorManager &error_manager;
+  // We need to know if we've had a parsererror when returning but can't
+  // use the error_manager because it's used concurrently by other parsers.
+  bool has_errored;
 
   std::optional<std::string> next_line();
   void parse_request(Request &request);

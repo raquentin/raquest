@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <ostream>
 #include <sstream>
 #include <utility>
 
@@ -73,13 +74,15 @@ std::optional<std::shared_ptr<Request>> Parser::parse() {
         // TODO: generalize this error
         if (line->find("[request") != std::string::npos) {
           const Hint hint =
-              Hint{std::pair<int, int>(3, 4), "missing closing bracket ^"};
+              Hint{std::pair<int, int>(3, 4), "add closing bracket ^"};
           const MalformedSectionHeaderInfo &info = {"missing closing bracket",
                                                     line_number, *line,
                                                     std::optional<Hint>(hint)};
           auto error = std::make_shared<ParserError>(
               ParserError(file_name, info, ErrorSeverity::Error));
           error_manager.add_error(error);
+
+          has_errored = true;
         }
       }
     }
@@ -87,10 +90,10 @@ std::optional<std::shared_ptr<Request>> Parser::parse() {
 
   // Checking size and returning here so that we can catch multiple parser
   // errors, not just returning after the first one.
-  if (error_manager.get_errors().empty()) {
-    return std::make_shared<Request>(request);
+  if (has_errored) {
+    return std::nullopt;
   }
-  return std::nullopt;
+  return std::make_shared<Request>(request);
 }
 
 void Parser::parse_request(Request &request) {
@@ -99,6 +102,9 @@ void Parser::parse_request(Request &request) {
     // errors.push_back(Error(ErrorType::UnexpectedEndOfFile,
     //                        "Expected HTTP method and URL", line_number,
     //                        column_number));
+
+    // TODO: not return, want to get the next error as well.
+    has_errored = true;
     return;
   }
 
@@ -111,6 +117,8 @@ void Parser::parse_request(Request &request) {
     //     Error(ErrorType::ExpectedIdentifier,
     //           "Invalid request line. Expected HTTP method and URL.",
     //           line_number, column_number));
+    has_errored = true;
+    return;
   }
 
   request.set_method(method);
@@ -123,9 +131,21 @@ void Parser::parse_headers(Request &request) {
          line->at(0) != '[') {
     size_t colon_pos = line->find(':');
     if (colon_pos == std::string::npos) {
-      // errors.push_back(Error(ErrorType::UnexpectedCharacter,
-      //                        "Expected ':' in header line", line_number,
-      //                        column_number));
+
+      int space_pos = line->find(' ');
+
+      // TODO: bounds check
+      std::pair<int, int> emph_range = std::pair(space_pos, space_pos + 1);
+
+      Hint hint = Hint{emph_range, "add colon"};
+
+      const ExpectedColonInHeaderAssignmentInfo &info = {line_number, *line,
+                                                         hint};
+      auto error = std::make_shared<ParserError>(
+          ParserError(file_name, info, ErrorSeverity::Error));
+      error_manager.add_error(error);
+
+      has_errored = true;
       continue;
     }
 
@@ -144,6 +164,8 @@ void Parser::parse_body(Request &request) {
          line->at(0) != '[') {
     body_content << *line << '\n';
   }
+
+  // TODO: validate json
 
   request.set_body(body_content.str());
 }
@@ -192,6 +214,10 @@ AssertionSet Parser::parse_assertions() {
         // errors.push_back(Error(ErrorType::ExpectedIdentifier,
         //                        "Invalid json_field syntax", line_number,
         //                        column_number));
+        //
+
+        has_errored = true;
+        continue;
       }
 
       size_t field_start = colon_pos + 2; // skip the colon and the space
@@ -201,6 +227,10 @@ AssertionSet Parser::parse_assertions() {
         // errors.push_back(Error(ErrorType::ExpectedIdentifier,
         //                        "Invalid json_field syntax: missing value",
         //                        line_number, column_number));
+        //
+
+        has_errored = true;
+        continue;
       }
 
       std::string field = line->substr(field_start, value_start - field_start);
@@ -211,6 +241,9 @@ AssertionSet Parser::parse_assertions() {
         // errors.push_back(Error(ErrorType::ExpectedIdentifier,
         //                        "Field name cannot be empty", line_number,
         //                        column_number));
+
+        has_errored = true;
+        continue;
       }
 
       // intelligent type inference (regex, number, boolean, or string match)

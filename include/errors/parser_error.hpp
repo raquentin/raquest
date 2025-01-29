@@ -6,11 +6,7 @@
 
 enum class ParserErrorType {
   MalformedSectionHeader,
-};
-
-struct Hint {
-  std::pair<int, int> emph_range;
-  std::string message;
+  ExpectedColonInHeaderAssignment,
 };
 
 struct MalformedSectionHeaderInfo {
@@ -20,10 +16,20 @@ struct MalformedSectionHeaderInfo {
   std::optional<Hint> hint;
 };
 
+struct ExpectedColonInHeaderAssignmentInfo {
+  int line_number;
+  std::string snippet;
+  Hint hint;
+};
+
 class ParserError : public Error {
 public:
   ParserError(const std::string &file_name,
               const MalformedSectionHeaderInfo &info,
+              const ErrorSeverity severity);
+
+  ParserError(const std::string &file_name,
+              const ExpectedColonInHeaderAssignmentInfo &info,
               const ErrorSeverity severity);
 
   void print_details() const override;
@@ -31,7 +37,8 @@ public:
 private:
   std::string file_name_;
   ParserErrorType type_;
-  std::variant<MalformedSectionHeaderInfo> info_;
+  std::variant<MalformedSectionHeaderInfo, ExpectedColonInHeaderAssignmentInfo>
+      info_;
 };
 
 void print_line_and_left_pad(std::optional<int> line_number);

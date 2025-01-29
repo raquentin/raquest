@@ -29,13 +29,11 @@ assertion_error_type_as_error_title(AssertionErrorType aet) {
 
 class AssertionError : public Error {
 public:
-  AssertionError(const std::string &file_name, const std::string &message,
+  AssertionError(const std::string &file_name, const std::string snippet,
                  AssertionErrorType type);
 
   void print_details() const override;
 
 private:
-  std::string file_name_;
-  std::string message_;
-  AssertionErrorType type_;
+  std::string snippet_;
 };
