@@ -4,88 +4,88 @@
 #include <string>
 
 enum class ErrorKind {
-  ParserError,
-  RuntimeError,
-  AssertionError,
+    ParserError,
+    RuntimeError,
+    AssertionError,
 };
 
 enum class ErrorSeverity {
-  Error,
-  Warning,
-  FailedAssertion,
+    Error,
+    Warning,
+    FailedAssertion,
 };
 
 struct Hint {
-  std::pair<int, int> emph_range;
-  std::string message;
+    std::pair<int, int> emph_range;
+    std::string message;
 };
 
 class Error {
-public:
-  Error(ErrorKind code, const std::string &title, const std::string &file,
-        ErrorSeverity severity)
-      : kind_(code), title_(title), file_name_(file), severity_(severity) {}
+  public:
+    Error(const std::string &title, const std::string &file,
+          ErrorSeverity severity)
+        : title_(title), file_name_(file), severity_(severity) {}
 
-  virtual ~Error() = default;
+    virtual ~Error() = default;
 
-  virtual void print_details() const = 0;
+    virtual void print_details() const = 0;
 
-  // for use in printing [`ErrorKind`] in errors
-  std::string error_kind_to_string(ErrorKind kind) const {
-    switch (kind) {
-    case ErrorKind::ParserError:
-      return "parser";
-    case ErrorKind::AssertionError:
-      return "assertion";
-    case ErrorKind::RuntimeError:
-      return "runtime";
-    }
-  }
-
-  void print() const {
-    // <severity_>(kind_)
-    switch (severity_) {
-    case ErrorSeverity::Error:
-      fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold, "{} error",
-                 error_kind_to_string(kind_));
-      break;
-
-    case ErrorSeverity::Warning:
-      fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
-                 "{} warning", error_kind_to_string(kind_));
-      break;
-    case ErrorSeverity::FailedAssertion:
-      fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold,
-                 "assertion failed");
-      break;
+    // for use in printing [`ErrorKind`] in errors
+    std::string error_kind_to_string(ErrorKind kind) const {
+        switch (kind) {
+        case ErrorKind::ParserError:
+            return "parser";
+        case ErrorKind::AssertionError:
+            return "assertion";
+        case ErrorKind::RuntimeError:
+            return "runtime";
+        }
     }
 
-    // : <title_>
-    fmt::print(fmt::emphasis::bold, ": {}\n", title_);
+    void print() const {
+        // <severity_>(kind_)
+        switch (severity_) {
+        case ErrorSeverity::Error:
+            fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold,
+                       "{} error", error_kind_to_string(kind_));
+            break;
 
-    // *padding* -->
-    // in cyan
-    fmt::print(fg(fmt::terminal_color::bright_black) | fmt::emphasis::bold,
-               "   --> ");
+        case ErrorSeverity::Warning:
+            fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
+                       "{} warning", error_kind_to_string(kind_));
+            break;
+        case ErrorSeverity::FailedAssertion:
+            fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold,
+                       "assertion failed");
+            break;
+        }
 
-    // <file_>
-    fmt::print("{}\n", file_name_);
+        // : <title_>
+        fmt::print(fmt::emphasis::bold, ": {}\n", title_);
 
-    // error-specific details
-    print_details();
+        // *padding* -->
+        // in cyan
+        fmt::print(fg(fmt::terminal_color::bright_black) | fmt::emphasis::bold,
+                   "   --> ");
 
-    // end with newline to separate errors
-    fmt::print("\n");
-  }
+        // <file_>
+        fmt::print("{}\n", file_name_);
 
-  ErrorKind get_code() const { return kind_; }
-  std::string get_title() const { return title_; }
-  std::string get_file() const { return file_name_; }
-  ErrorSeverity get_severity() const { return severity_; }
+        // error-specific details
+        print_details();
 
-protected:
-  ErrorKind kind_;
-  std::string title_;
-  std::string file_name_;
-  ErrorSeverity severity_;
+        // end with newline to separate errors
+        fmt::print("\n");
+    }
+
+    ErrorKind get_code() const { return kind_; }
+    std::string get_title() const { return title_; }
+    std::string get_file() const { return file_name_; }
+    ErrorSeverity get_severity() const { return severity_; }
+
+  protected:
+    ErrorKind kind_;
+    std::string title_;
+    std::string file_name_;
+    ErrorSeverity severity_;
 };

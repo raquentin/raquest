@@ -1,12 +1,13 @@
 set(SOURCE_FILES
     parser.cpp
-    request.cpp
-    assert.cpp
-    response.cpp
+    curl_request.cpp
+    curl_response.cpp
+    assertion_set.cpp
+    raquest.cpp
     errors/parser_error.cpp
-    errors/error_manager.cpp
-    errors/assertion_error.cpp
-    errors/runtime_error.cpp)
+    errors/curl_error.cpp
+    errors/file_error.cpp
+    errors/assertion_error.cpp)
 
 add_library(raquestlib ${SOURCE_FILES})
 
