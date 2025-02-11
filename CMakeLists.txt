@@ -4,13 +4,14 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMAND ON)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
-                                             "AppleClang")
-  # clang v18 needs these to compile std::expected
-  message(
-    STATUS "Clang compiler detected. Adding Clang-specific compiler flags.")
-  set(CMAKE_CXX_FLAGS "-std=c++23 -D__cpp_concepts=202002L")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES 
+      ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
+
+set(CMAKE_CXX_FLAGS "-std=c++23 -D__cpp_concepts=202002L")
 
 include_directories(include)
 add_definitions(-DSOME_DEFINITION)

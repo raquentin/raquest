@@ -1,142 +1,80 @@
-#include "assert.hpp"
-#include "errors/error_manager.hpp"
-#include "errors/runtime_error.hpp"
-#include "parser.hpp"
-#include "version.hpp"
 #include <CLI/CLI.hpp>
-#include <filesystem>
+#include <curl/curl.h>
 #include <future>
 #include <memory>
 #include <string>
 
-std::vector<std::string>
-collect_raq_files(const std::vector<std::string> &paths, bool recursive,
-                  ErrorManager &error_manager) {
-  std::vector<std::string> raq_files;
-  for (const auto &path_str : paths) {
-    std::filesystem::path path(path_str);
-    try {
-      if (std::filesystem::is_regular_file(path)) {
-        if (path.extension() == ".raq") {
-          raq_files.emplace_back(path.string());
-        }
-      } else if (std::filesystem::is_directory(path)) {
-        if (recursive) {
-          for (const auto &entry :
-               std::filesystem::recursive_directory_iterator(path)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".raq") {
-              raq_files.emplace_back(entry.path().string());
-            }
-          }
-        } else {
-          for (const auto &entry : std::filesystem::directory_iterator(path)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".raq") {
-              raq_files.emplace_back(entry.path().string());
-            }
-          }
-        }
-      } else {
-        std::shared_ptr<Error> error = std::make_shared<RuntimeError>(
-            path_str, "path is neither a regular file nor a directory.",
-            ErrorSeverity::Warning, RuntimeErrorType::FileSystem);
-        error_manager.add_error(error);
-      }
-    } catch (const std::filesystem::filesystem_error &e) {
-      std::shared_ptr<Error> error = std::make_shared<RuntimeError>(
-          path_str, e.what(), ErrorSeverity::Warning,
-          RuntimeErrorType::FileSystem);
-      error_manager.add_error(error);
-    }
-  }
-  return raq_files;
-}
+#include "app_context.hpp"
+#include "file.hpp"
+#include "printer.hpp"
+#include "raquest.hpp"
 
 int main(int argc, char **argv) {
-  CLI::App app{"a command-line HTTP client"};
+    curl_global_init(CURL_GLOBAL_ALL);
 
-  app.set_version_flag("--version", std::string(RAQUEST_VERSION));
+    CLI::App app{"a command-line HTTP client"};
 
-  bool recursive = false;
-  app.add_flag("-r,--recursive", recursive,
-               "recursively search directories for .raq files");
+    AppContext ctx;
 
-  std::vector<std::string> paths;
-  app.add_option("paths", paths,
-                 "specify one or more .raq files or directories")
-      ->required()
-      ->check(CLI::ExistingPath)
-      ->expected(-1, 1);
+    app.set_version_flag("--version", RAQUEST_VERSION);
 
-  CLI11_PARSE(app, argc, argv);
+    app.add_option("-j, --jobs", ctx.jobs, "an upper bound for concurrency")
+        ->capture_default_str();
+    ;
 
-  ErrorManager error_manager;
+    auto cli_output_modifiers = app.add_option_group("output_modifiers");
+    cli_output_modifiers->add_flag(
+        "-v, --verbose", ctx.verbose,
+        "print potentially unnessesary console output");
+    cli_output_modifiers->add_flag("-q, --quiet", ctx.quiet,
+                                   "only print critical error output");
 
-  std::vector<std::string> raq_files =
-      collect_raq_files(paths, recursive, error_manager);
+    app.add_option("paths", ctx.input_paths,
+                   "specify one or more .raq files or directories")
+        ->required()
+        ->check(CLI::ExistingPath)
+        ->expected(-1, 1);
 
-  if (raq_files.empty()) {
-    std::shared_ptr<Error> error = std::make_shared<RuntimeError>(
-        "<no file>", "no .raq files found in the specified paths.",
-        ErrorSeverity::Error, RuntimeErrorType::Internal);
-    error_manager.add_error(error);
-  }
+    app.add_flag("-r,--recursive", ctx.recursive,
+                 "recursively search directories for .raq files")
+        ->capture_default_str();
 
-  unsigned int max_concurrent_threads = std::thread::hardware_concurrency();
-  if (max_concurrent_threads == 0) {
-    max_concurrent_threads = 4;
-  }
+    CLI11_PARSE(app, argc, argv);
 
-  std::counting_semaphore<> semaphore(max_concurrent_threads);
+    auto input_filenames = collect_raq_files(ctx.input_paths, ctx.recursive);
 
-  std::vector<std::future<void>> futures;
-
-  auto process_file = [&](const std::string &file_name) {
-    semaphore.acquire();
-    try {
-      Parser parser(file_name, error_manager);
-      auto parse_result = parser.parse();
-
-      if (!parse_result.has_value()) {
-        semaphore.release();
-        return;
-      }
-
-      std::shared_ptr<Request> request = parse_result.value();
-      auto execute_result = request->execute();
-
-      if (!execute_result.has_value()) {
-        semaphore.release();
-        return;
-      }
-
-      // TODO: print execute_result->data if successful and right mode.
-
-      // validate assertions
-      validate(execute_result.value(), request->get_assertion_set(),
-               error_manager);
-    } catch (const std::exception &ex) {
-      std::shared_ptr<Error> error = std::make_shared<RuntimeError>(
-          file_name, ex.what(), ErrorSeverity::Error,
-          RuntimeErrorType::Internal);
-      error_manager.add_error(error);
+    if (!input_filenames.has_value()) [[unlikely]] {
+        // TODO: panic
     }
-    semaphore.release();
-  };
 
-  for (const auto &raq_file : raq_files) {
-    futures.emplace_back(
-        std::async(std::launch::async, process_file, raq_file));
-  }
+    auto raquests = std::vector<Raquest *>{};
+    raquests.reserve(input_filenames.value().size());
+    for (const auto filename : input_filenames.value()) {
+        Raquest raq(filename);
+        raquests.push_back(&raq);
+    }
 
-  for (auto &fut : futures) {
-    fut.get();
-  }
+    if (raquests.empty()) {
+        // TODO: error
+    }
 
-  // printing errors done in main thread
-  if (!error_manager.get_errors().empty()) {
-    error_manager.print_all_errors();
-    return 1;
-  }
+    std::counting_semaphore<> threads_sem(ctx.jobs);
+    std::vector<std::future<std::vector<std::unique_ptr<Error>>>> futures;
+    for (Raquest *raq : raquests) {
+        futures.emplace_back(
+            std::async(std::launch::async, [raq]() { return raq->run(); }));
+    }
 
-  return 0;
+    for (auto &fut : futures) {
+        fut.get();
+    }
+
+    curl_global_cleanup();
+
+    if (ctx.errors_size != 0) {
+        print_final_error_footer(ctx.errors_size);
+        return 1;
+    }
+
+    return 0;
 }

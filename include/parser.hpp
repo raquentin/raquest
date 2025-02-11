@@ -1,32 +1,37 @@
 #pragma once
-#include "errors/error_manager.hpp"
-#include "request.hpp"
+#include "assertion_set.hpp"
+#include "curl_request.hpp"
+#include "errors/parser_error.hpp"
 #include <expected>
 #include <optional>
 #include <string>
 
 enum class HttpMethod { GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, UNKNOWN };
 
+/**
+ * @brief A class to parse Raquests while collecting tokens and errors.
+ */
 class Parser {
-public:
-  Parser(const std::string &file_name, ErrorManager &error_manager);
-  std::optional<std::shared_ptr<Request>> parse();
+  public:
+    Parser(const std::string &file_name);
+    std::expected<std::pair<CurlRequest, std::optional<AssertionSet>>,
+                  std::vector<ParserError>>
+    parse();
 
-private:
-  std::string input;
-  std::string file_name;
-  size_t position;
-  int line_number;
-  int column_number;
+  private:
+    std::string input_;
+    std::string file_name_;
+    size_t position_;
+    int line_number_;
+    int column_number_;
+    std::optional<AssertionSet> assertion_set_ = std::nullopt;
 
-  ErrorManager &error_manager;
-  // We need to know if we've had a parsererror when returning but can't
-  // use the error_manager because it's used concurrently by other parsers.
-  bool has_errored;
+    std::vector<ParserError> errors_;
 
-  std::optional<std::string> next_line();
-  void parse_request(Request &request);
-  void parse_headers(Request &request);
-  void parse_body(Request &request);
-  AssertionSet parse_assertions();
+    std::optional<std::string> next_line();
+
+    void parse_request(CurlRequest &request);
+    void parse_headers(CurlRequest &request);
+    void parse_body(CurlRequest &request);
+    void parse_assertions();
 };
