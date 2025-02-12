@@ -3,16 +3,16 @@
 #include "error.hpp"
 #include <string>
 
-enum class CurlErrorType {
-    The,
-};
-
-class CurlError : public Error {
+class CurlError final : public Error {
   public:
-    CurlError(const std::string &file_name, ErrorSeverity severity);
+    enum class Type { UnitializedCurl };
 
-    void print_details() const override;
+    CurlError(const std::string &file_name, const Type type);
+
+    void virtual print() const override;
+    constexpr virtual std::string get_brief() const override;
 
   private:
-    CurlErrorType type_;
+    using enum Type;
+    Type type_;
 };

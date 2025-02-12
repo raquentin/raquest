@@ -4,40 +4,33 @@
 #include <string>
 #include <variant>
 
-enum class ParserErrorType {
-    MalformedSectionHeader,
-    ExpectedColonInHeaderAssignment,
+struct Hint {
+    std::pair<int, int> emph_range;
+    std::string message;
 };
 
-struct MalformedSectionHeaderInfo {
+struct MalformedSectionHeader {
     std::string section_name;
     int line_number;
     std::string snippet;
     std::optional<Hint> hint;
 };
 
-struct ExpectedColonInHeaderAssignmentInfo {
+struct ExpectedColonInHeaderAssignment {
     int line_number;
     std::string snippet;
     Hint hint;
 };
 
-class ParserError : public Error {
+class ParserError final : public Error {
   public:
-    ParserError(const std::string &file_name,
-                const MalformedSectionHeaderInfo &info,
-                const ErrorSeverity severity);
+    template <typename T>
+    ParserError(const std::string &file_name, T &&info)
+        : Error(file_name), info_{std::forward<T>(info)} {}
 
-    ParserError(const std::string &file_name,
-                const ExpectedColonInHeaderAssignmentInfo &info,
-                const ErrorSeverity severity);
-
-    void print_details() const override;
+    void virtual print() const override;
+    constexpr virtual std::string get_brief() const override;
 
   private:
-    std::string file_name_;
-    ParserErrorType type_;
-    std::variant<MalformedSectionHeaderInfo,
-                 ExpectedColonInHeaderAssignmentInfo>
-        info_;
+    std::variant<MalformedSectionHeader, ExpectedColonInHeaderAssignment> info_;
 };

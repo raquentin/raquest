@@ -20,7 +20,7 @@ class Parser {
 
   private:
     std::string input_;
-    std::string file_name_;
+    const std::string &file_name_;
     size_t position_;
     int line_number_;
     int column_number_;

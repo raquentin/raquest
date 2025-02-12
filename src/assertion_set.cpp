@@ -16,9 +16,8 @@ std::vector<AssertionError> validate(const CurlResponse &r,
             ss << code << " ";
         }
         ss << "but got " << status_code;
-        errors.push_back(
-            AssertionError(r.get_file_name(), ss.str(),
-                           AssertionErrorType::UnexpectedStatusCode));
+        errors.push_back(AssertionError(
+            r.get_file_name(), AssertionError::Type::UnexpectedStatusCode));
     }
 
     for (const auto &[key, expected_value] : as.headers) {
@@ -28,15 +27,14 @@ std::vector<AssertionError> validate(const CurlResponse &r,
                 ss << "Expected header '" << key << "' to have value '"
                    << expected_value << "' but got '" << *value << "'";
 
-                errors.push_back(
-                    AssertionError(r.get_file_name(), ss.str(),
-                                   AssertionErrorType::UnexpectedHeader));
+                errors.push_back(AssertionError(
+                    r.get_file_name(), AssertionError::Type::UnexpectedHeader));
             }
         } else {
             std::stringstream ss;
             ss << "Expected header '" << key << "' to be present but it wasn't";
-            errors.push_back(AssertionError(r.get_file_name(), ss.str(),
-                                            AssertionErrorType::MissingHeader));
+            errors.push_back(AssertionError(
+                r.get_file_name(), AssertionError::Type::MissingHeader));
         }
     }
 
@@ -45,10 +43,10 @@ std::vector<AssertionError> validate(const CurlResponse &r,
 
         if (!value.has_value()) {
 
+            // "Expected json field '" + key + "' to be present but it wasn't",
+
             errors.push_back(AssertionError(
-                r.get_file_name(),
-                "Expected json field '" + key + "' to be present but it wasn't",
-                AssertionErrorType::MissingJsonField));
+                r.get_file_name(), AssertionError::Type::MissingJsonField));
             continue;
         }
 
@@ -60,12 +58,12 @@ std::vector<AssertionError> validate(const CurlResponse &r,
 
         if (!std::regex_match(val, pattern.get_regex())) {
 
+            //                 "Expected json field '" + key + "' to match
+            //                 pattern '" + pattern.get_pattern() + "' but it
+            //                 didn't, it was '" + val + "'",
+
             errors.push_back(AssertionError(
-                r.get_file_name(),
-                "Expected json field '" + key + "' to match pattern '" +
-                    pattern.get_pattern() + "' but it didn't, it was '" + val +
-                    "'",
-                AssertionErrorType::MissingJsonField));
+                r.get_file_name(), AssertionError::Type::MissingJsonField));
         }
     }
 

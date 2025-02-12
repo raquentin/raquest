@@ -1,4 +1,3 @@
-#include "errors/error.hpp"
 #include "errors/file_error.hpp"
 #include <expected>
 #include <filesystem>
@@ -35,10 +34,11 @@ std::expected<std::vector<std::string>, FileError> inline collect_raq_files(
                 }
             } else {
                 return std::unexpected(
-                    FileError(path_str, ErrorSeverity::Error));
+                    FileError(path_str, FileError::Type::BadPath));
             }
         } catch (const std::filesystem::filesystem_error &e) {
-            return std::unexpected(FileError(path_str, ErrorSeverity::Error));
+            return std::unexpected(
+                FileError(path_str, FileError::Type::Filesystem));
         }
     }
     return raq_files;

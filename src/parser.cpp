@@ -1,8 +1,6 @@
 #include "parser.hpp"
 #include "assertion_set.hpp"
-#include "errors/error.hpp"
 #include "errors/parser_error.hpp"
-#include "printer.hpp"
 #include <cstddef>
 #include <fstream>
 #include <iostream>
@@ -49,9 +47,7 @@ std::expected<std::pair<CurlRequest, std::optional<AssertionSet>>,
               std::vector<ParserError>>
 Parser::parse() {
     std::optional<std::string> line;
-    CurlRequest request;
-
-    print_compiling(file_name_);
+    CurlRequest request(file_name_);
 
     while ((line = next_line()).has_value()) {
         if (line->empty() || line->at(0) == '#')
@@ -71,11 +67,12 @@ Parser::parse() {
                 if (line->find("[request") != std::string::npos) {
                     const Hint hint = Hint{std::pair<int, int>(3, 4),
                                            "add closing bracket ^"};
-                    const MalformedSectionHeaderInfo &info = {
-                        "missing closing bracket", line_number_, *line,
-                        std::optional<Hint>(hint)};
-                    errors_.push_back(
-                        ParserError(file_name_, info, ErrorSeverity::Error));
+                    MalformedSectionHeader info = {"missing closing bracket",
+                                                   line_number_, *line,
+                                                   std::optional<Hint>(hint)};
+
+                    auto a = ParserError(file_name_, info);
+                    errors_.push_back(ParserError(file_name_, info));
                 }
             }
         }
@@ -120,10 +117,8 @@ void Parser::parse_headers(CurlRequest &request) {
 
             Hint hint = Hint{emph_range, "add colon"};
 
-            const ExpectedColonInHeaderAssignmentInfo &info = {line_number_,
-                                                               *line, hint};
-            errors_.push_back(
-                ParserError(file_name_, info, ErrorSeverity::Error));
+            ExpectedColonInHeaderAssignment info = {line_number_, *line, hint};
+            errors_.push_back(ParserError(file_name_, info));
 
             continue;
         }

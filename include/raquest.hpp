@@ -1,8 +1,8 @@
 #pragma once
 
-#include "app_context.hpp"
 #include "errors/error.hpp"
 #include <expected>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -24,7 +24,7 @@ class Raquest {
     /**
      * @brief Prints all output thread-safely to std::cout;
      */
-    void print_result(AppContext &app_config);
+    void print_result();
 
   private:
     const std::string file_name_;
