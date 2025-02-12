@@ -3,40 +3,29 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <variant>
-
-ParserError::ParserError(const std::string &file_name,
-                         const MalformedSectionHeaderInfo &info,
-                         ErrorSeverity severity)
-    : Error("malformed section header", file_name, severity),
-      type_(ParserErrorType::MalformedSectionHeader), info_(info) {}
-
-ParserError::ParserError(const std::string &file_name,
-                         const ExpectedColonInHeaderAssignmentInfo &info,
-                         ErrorSeverity severity)
-    : Error("expected ':' in header assignment", file_name, severity),
-      type_(ParserErrorType::ExpectedColonInHeaderAssignment), info_(info) {}
+;
 
 // print error-specific content.
 // should all be indented
-void ParserError::print_details() const {
+void ParserError::print() const {
     std::visit(
         [this](auto &&arg) {
             using T = std::decay_t<decltype(arg)>;
 
-            if constexpr (std::is_same_v<T, MalformedSectionHeaderInfo>) {
+            if constexpr (std::is_same_v<T, MalformedSectionHeader>) {
                 std::string hint_text = "add closing bracket ^";
-                print_line_and_left_pad(std::nullopt);
+                printer().print_line_and_left_pad(std::nullopt);
                 fmt::print("\n");
 
                 // print snippet
-                print_line_and_left_pad(arg.line_number);
-                fmt::print(fg(fmt::terminal_color::white), "{}{}\n",
-                           as_whitespace(6 + hint_text.length() -
-                                         arg.snippet.length() - 1),
-                           arg.snippet);
+                printer().print_line_and_left_pad(arg.line_number);
+                fmt::print(
+                    fg(fmt::terminal_color::white), "{}{}\n",
+                    SPACES(6 + hint_text.length() - arg.snippet.length() - 1),
+                    arg.snippet);
 
                 // print hint
-                print_line_and_left_pad(std::nullopt);
+                printer().print_line_and_left_pad(std::nullopt);
                 fmt::print(fg(fmt::terminal_color::bright_cyan) |
                                fmt::emphasis::bold,
                            "hint: ");
@@ -44,22 +33,22 @@ void ParserError::print_details() const {
                            "add closing bracket ^\n");
 
                 // end with deadln
-                print_line_and_left_pad(std::nullopt);
+                printer().print_line_and_left_pad(std::nullopt);
                 fmt::print("\n");
             } else if constexpr (std::is_same_v<
-                                     T, ExpectedColonInHeaderAssignmentInfo>) {
-                print_line_and_left_pad(std::nullopt);
+                                     T, ExpectedColonInHeaderAssignment>) {
+                printer().print_line_and_left_pad(std::nullopt);
                 fmt::print("\n");
 
                 // print snippet
-                print_line_and_left_pad(arg.line_number);
+                printer().print_line_and_left_pad(arg.line_number);
                 fmt::print(fg(fmt::terminal_color::white), "{}{}\n",
-                           as_whitespace(6 + arg.hint.message.size() + 1 -
-                                         arg.hint.emph_range.first),
+                           SPACES(6 + arg.hint.message.size() + 1 -
+                                  arg.hint.emph_range.first),
                            arg.snippet);
 
                 // print hint
-                print_line_and_left_pad(std::nullopt);
+                printer().print_line_and_left_pad(std::nullopt);
                 fmt::print(fg(fmt::terminal_color::bright_cyan) |
                                fmt::emphasis::bold,
                            "hint: ");
@@ -73,9 +62,24 @@ void ParserError::print_details() const {
                                        '^'));
 
                 // end with deadln
-                print_line_and_left_pad(std::nullopt);
+                printer().print_line_and_left_pad(std::nullopt);
                 fmt::print("\n");
             }
         },
         info_);
 };
+
+constexpr inline std::string ParserError::get_brief() const {
+    std::visit(
+        [](auto &&arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, MalformedSectionHeader>)
+                return "malformed section header";
+            else if constexpr (std::is_same_v<T,
+                                              ExpectedColonInHeaderAssignment>)
+                return "missing colon in header assignment";
+        },
+        info_);
+
+    return "unknown parser error";
+}

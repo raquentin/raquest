@@ -3,16 +3,16 @@
 #include "error.hpp"
 #include <string>
 
-enum class FileErrorType {
-    The,
-};
-
-class FileError : public Error {
+class FileError final : public Error {
   public:
-    FileError(const std::string &file_name, ErrorSeverity severity);
+    enum class Type { Filesystem, BadPath };
 
-    void print_details() const override;
+    FileError(const std::string &file_name, const Type type);
+
+    void virtual print() const override;
+    constexpr virtual std::string get_brief() const override;
 
   private:
-    FileErrorType type_;
+    using enum Type;
+    Type type_;
 };

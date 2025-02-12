@@ -15,9 +15,11 @@ struct CurlRequest {
     std::string body_;
     mutable std::string response_data_;
 
+    CurlRequest(const std::string &file_name_);
+
     std::expected<CurlResponse, CurlError> execute() const;
 
-    CURL *curl_;
+    CURL *curl_handle_;
 
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
                                 void *userp);

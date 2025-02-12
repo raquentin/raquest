@@ -1,21 +1,25 @@
 #include "errors/assertion_error.hpp"
-#include "printer.hpp"
-#include <optional>
+#include <fmt/format.h>
 
-// TODO: get errorkind as message fn
-AssertionError::AssertionError(const std::string &file_name,
-                               const std::string snippet,
-                               AssertionErrorType type)
-    : Error(assertion_error_type_as_error_title(type), file_name,
-            ErrorSeverity::FailedAssertion),
-      snippet_(snippet) {}
+AssertionError::AssertionError(const std::string &file_name, Type type)
+    : Error(file_name), type_(type) {}
 
-void AssertionError::print_details() const {
+void AssertionError::print() const { fmt::print("AssertionError::print()"); }
 
-    // print snippet
-    fmt::print(fg(fmt::terminal_color::white), snippet_);
-
-    // end with deadln
-    print_line_and_left_pad(std::nullopt);
-    fmt::print("\n");
+constexpr inline std::string AssertionError::get_brief() const {
+    switch (type_) {
+        using enum Type;
+    case UnexpectedStatusCode:
+        return "unexpected status code";
+    case MissingHeader:
+        return "missing header";
+    case UnexpectedHeader:
+        return "unexpected header";
+    case MissingJsonField:
+        return "missing json field";
+    case UnexpectedJsonField:
+        return "unexpected json field";
+    default:
+        return "unknown assertion error";
+    }
 }
