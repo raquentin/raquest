@@ -1,6 +1,7 @@
 #include "curl_request.hpp"
-#include "curl/curl.h"
+#include "config.hpp"
 #include "errors/curl_error.hpp"
+#include "printer.hpp"
 #include <cstddef>
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -9,6 +10,9 @@ CurlRequest::CurlRequest(const std::string &file_name)
     : file_name_(file_name) {};
 
 std::expected<CurlResponse, CurlError> CurlRequest::execute() const {
+
+    printer().running(file_name_);
+
     CURL *curl;
 
     curl = curl_easy_init();
@@ -28,20 +32,25 @@ std::expected<CurlResponse, CurlError> CurlRequest::execute() const {
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body_.c_str());
     }
 
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-
     CurlResponse response;
 
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data_);
 
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &response);
 
-    CURLcode res = curl_easy_perform(curl);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 2000L);
 
-    if (res != CURLE_OK) {
-        return std::unexpected(
-            CurlError(file_name_, CurlError::Type::UnitializedCurl));
+    int res_enum;
+    std::string res;
+    int retries_remaining = config().retries;
+
+    do {
+        res_enum = curl_easy_perform(curl);
+        res = (std::string)curl_easy_strerror((CURLcode)res_enum);
+    } while (retries_remaining-- && res_enum == CURLE_OPERATION_TIMEDOUT);
+
+    if (res_enum != CURLE_OK) {
+        return std::unexpected(CurlError(file_name_, res));
     }
 
     long http_code = 0;

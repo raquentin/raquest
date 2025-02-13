@@ -5,14 +5,11 @@
 
 class CurlError final : public Error {
   public:
-    enum class Type { UnitializedCurl };
-
-    CurlError(const std::string &file_name, const Type type);
+    CurlError(const std::string &file_name, const std::string &curl_error);
 
     void virtual print() const override;
     constexpr virtual std::string get_brief() const override;
 
   private:
-    using enum Type;
-    Type type_;
+    const std::string curl_error_;
 };

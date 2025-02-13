@@ -38,16 +38,19 @@ export class ThreadPool {
     std::queue<std::function<void()>> tasks_;
     std::mutex queue_mutex_;
     std::condition_variable cond_;
-    bool stop_;
+    bool stop_ = false;
 };
 
-ThreadPool::ThreadPool(size_t threads) : stop_(false) {
-    for (size_t i = 0; i < threads; i++) {
+ThreadPool::ThreadPool(size_t num_threads) : stop_(false) {
+    workers_.reserve(num_threads);
+    for (size_t i = 0; i < num_threads; i++) {
         workers_.emplace_back([this] {
             while (true) {
                 std::function<void()> task;
                 {
                     std::unique_lock<std::mutex> lock(queue_mutex_);
+
+                    // wait while tasks.empty() and !stop
                     cond_.wait(lock,
                                [this] { return stop_ || !tasks_.empty(); });
 
@@ -94,6 +97,6 @@ ThreadPool::~ThreadPool() {
 
     cond_.notify_all();
 
-    for (std::thread &worker : workers_)
+    for (auto &worker : workers_)
         worker.join();
 }

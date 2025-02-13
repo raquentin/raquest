@@ -12,6 +12,7 @@ struct CurlRequest {
     std::string url_;
     std::vector<std::string> headers_;
     std::string body_;
+
     mutable std::string response_data_;
 
     CurlRequest(const std::string &file_name_);

@@ -1,6 +1,7 @@
 #include "parser.hpp"
 #include "assertion_set.hpp"
 #include "errors/parser_error.hpp"
+#include "printer.hpp"
 #include <cstddef>
 #include <fstream>
 #include <iostream>
@@ -49,6 +50,9 @@ std::optional<std::string> Parser::next_line() {
 std::expected<std::pair<CurlRequest, std::optional<AssertionSet>>,
               std::vector<ParserError>>
 Parser::parse() {
+
+    printer().compiling(file_name_);
+
     std::optional<std::string> line;
     CurlRequest request(file_name_);
 
