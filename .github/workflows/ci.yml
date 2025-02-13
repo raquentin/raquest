@@ -1,4 +1,4 @@
-name: CI Build and Test
+name: Build and Test
 
 on:
   push:
@@ -15,18 +15,24 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Configure CMake
+      - name: Download Dependencies
         run: |
-          mkdir build
-          cd build
-          cmake ..
+          sudo apt-get install ninja
 
-      - name: Build the project
+      - name: Configure Build Directory
         run: |
-          cd build
-          cmake --build .
+          mkdir -p build
+          cmake -G Ninja -S . -B build
 
-      - name: Run tests
+      - name: Build
         run: |
-          cd build
-          ctest
+          ninja -C build
+
+      - name: Run Unit Tests
+        run: |
+          ninja test -C build
+          ninja memcheck -C build
+
+      - name: Run Valgrind
+        run: |
+          ninja valgrind -C build

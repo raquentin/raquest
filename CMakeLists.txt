@@ -50,3 +50,17 @@ set(gtest_force_shared_crt
     CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googletest CLI11 json curl fmt)
+
+include (CTest)
+
+add_custom_target(memcheck
+    COMMAND ${CMAKE_CTEST_COMMAND} 
+        --force-new-ctest-process --test-action memcheck
+    COMMAND ${CMAKE_COMMAND} -E cat "${CMAKE_BINARY_DIR}/Testing/Temporary/MemoryChecker.*.log"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+add_custom_target(
+    valgrind
+    COMMAND valgrind --leak-check=full ./src/raquest ../examples -r
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
