@@ -53,8 +53,30 @@ json_field: description here is the description
 - cmake 3.24
 - clang 18 and/or gcc 14
 
-### Running Tests
+### Commands
+
+Before anything, build and enter the development environment with `nix develop`.
+
+#### Run CMake
 ```bash
+cmake -G Ninja -S . -B build
+```
+
+#### Run Tests
+```bash
+ninja test -C build
+ninja memcheck -C build
+```
+
+#### Run Valgrind
+
+```bash
+ninja valgrind -C build
+```
+
+
+```bash
+nix develop
 mkdir build && \
 cd build && \
 cmake .. && \

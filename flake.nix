@@ -24,6 +24,8 @@
             cmake
             gtest
             openssl
+            valgrind
+            ninja
           ];
         };
     });
