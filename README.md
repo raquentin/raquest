@@ -62,9 +62,14 @@ Before anything, build and enter the development environment with `nix develop`.
 cmake -G Ninja -S . -B build
 ```
 
+#### Build
+```bash
+ninja -C build
+```
+
 #### Run Tests
 ```bash
-ninja test -C build
+ninja runtests -C build
 ninja memcheck -C build
 ```
 
@@ -74,17 +79,7 @@ ninja memcheck -C build
 ninja valgrind -C build
 ```
 
-
-```bash
-nix develop
-mkdir build && \
-cd build && \
-cmake .. && \
-cmake --build . && \
-ctest
-```
-
-### Clangd Setup
+#### Clangd Setup
 I'm using the Clangd C++ LSP. Run the command below to make it aware of your linked libraries.
 
 ```bash

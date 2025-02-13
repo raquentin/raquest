@@ -1,5 +1,6 @@
 #include "assertion_set.hpp"
 #include "errors/assertion_error.hpp"
+#include <sstream>
 
 std::vector<AssertionError> validate(const CurlResponse &r,
                                      const AssertionSet &as) {

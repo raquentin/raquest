@@ -16,11 +16,11 @@
   in {
     devShells = forEachSupportedSystem ({pkgs}: {
       default =
-        pkgs.mkShell.override {}
+        pkgs.mkShell.override {stdenv = pkgs.llvmPackages_19.libcxxStdenv;}
         {
           packages = with pkgs; [
             llvmPackages_19.libcxxClang
-            clang-tools
+            llvmPackages_19.clang-tools
             cmake
             gtest
             openssl

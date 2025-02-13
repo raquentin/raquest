@@ -5,7 +5,6 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
-#include <ostream>
 #include <sstream>
 #include <utility>
 
@@ -40,7 +39,11 @@ std::optional<std::string> Parser::next_line() {
         position_++;
     }
 
-    return input_.substr(start, position_ - start - 1);
+    std::size_t len = (position_ > start && input_[position_ - 1] == '\n')
+                          ? (position_ - start - 1)
+                          : (position_ - start);
+
+    return input_.substr(start, len);
 }
 
 std::expected<std::pair<CurlRequest, std::optional<AssertionSet>>,
@@ -50,6 +53,7 @@ Parser::parse() {
     CurlRequest request(file_name_);
 
     while ((line = next_line()).has_value()) {
+        // skip empty
         if (line->empty() || line->at(0) == '#')
             continue;
 
@@ -70,8 +74,6 @@ Parser::parse() {
                     MalformedSectionHeader info = {"missing closing bracket",
                                                    line_number_, *line,
                                                    std::optional<Hint>(hint)};
-
-                    auto a = ParserError(file_name_, info);
                     errors_.push_back(ParserError(file_name_, info));
                 }
             }
@@ -81,13 +83,14 @@ Parser::parse() {
     if (!errors_.empty())
         return std::unexpected(errors_);
 
-    return std::pair(request, assertion_set_);
+    return std::make_pair(request, assertion_set_);
 }
 
 void Parser::parse_request(CurlRequest &request) {
     auto line = next_line();
     if (!line.has_value()) {
         // TODO: error
+        return;
     }
 
     std::istringstream iss(*line);
@@ -96,6 +99,7 @@ void Parser::parse_request(CurlRequest &request) {
 
     if (method.empty() || url.empty()) {
         // TODO: error
+        return;
     }
 
     request.method_ = method;
@@ -104,28 +108,24 @@ void Parser::parse_request(CurlRequest &request) {
 
 void Parser::parse_headers(CurlRequest &request) {
     std::optional<std::string> line;
+
     while ((line = next_line()).has_value() && !line->empty() &&
            line->at(0) != '[') {
         size_t colon_pos = line->find(':');
         if (colon_pos == std::string::npos) {
-
-            int space_pos = line->find(' ');
-
-            // TODO: bounds check
+            int space_pos = static_cast<int>(line->find(' '));
             std::pair<int, int> emph_range =
                 std::pair(space_pos, space_pos + 1);
-
             Hint hint = Hint{emph_range, "add colon"};
-
-            ExpectedColonInHeaderAssignment info = {line_number_, *line, hint};
+            ExpectedColonInHeaderAssignment info{line_number_, *line, hint};
             errors_.push_back(ParserError(file_name_, info));
-
             continue;
         }
 
         std::string key = line->substr(0, colon_pos);
         std::string value = line->substr(colon_pos + 1);
-        request.headers_.push_back(key + ": " + value);
+
+        request.headers_.emplace_back(key + ": " + value);
     }
 }
 
@@ -146,25 +146,35 @@ void Parser::parse_body(CurlRequest &request) {
 
 std::string trim(const std::string &str) {
     auto begin = str.begin();
-    while (begin != str.end() && std::isspace(*begin)) {
+    while (begin != str.end() &&
+           std::isspace(static_cast<unsigned char>(*begin))) {
         begin++;
     }
 
     auto end = str.end();
-    do {
+    while (std::distance(begin, end) > 0 &&
+           std::isspace(static_cast<unsigned char>(*(end - 1))))
         end--;
-    } while (std::distance(begin, end) > 0 && std::isspace(*end));
 
     return std::string(begin, end + 1);
 }
 
 void Parser::parse_assertions() {
+    if (!assertion_set_.has_value()) {
+        assertion_set_.emplace();
+    }
+
     std::optional<std::string> line;
 
     while ((line = next_line()).has_value() && !line->empty() &&
            line->at(0) != '[') {
         if (line->find("status") != std::string::npos) {
             size_t colon_pos = line->find(':');
+            if (colon_pos == std::string::npos) {
+                // TODO: error
+                continue;
+            }
+
             std::string codes = line->substr(colon_pos + 1);
             std::istringstream iss(codes);
             std::vector<int> status_codes;
@@ -177,10 +187,23 @@ void Parser::parse_assertions() {
             }
         } else if (line->find("header") != std::string::npos) {
             size_t equals_pos = line->find('=');
-            std::string key =
-                line->substr(7, equals_pos - 7); // Remove "header: "
-            std::string value = line->substr(equals_pos + 1);
-            assertion_set_->headers.push_back(std::pair(key, value));
+            if (equals_pos == std::string::npos) {
+                // TODO: error
+                continue;
+            }
+
+            std::string kv = line->substr(equals_pos + 1);
+            // naive parse: split on ':'
+            auto colon_pos = kv.find(':');
+            if (colon_pos == std::string::npos) {
+                // TODO: error
+                continue;
+            }
+
+            std::string key = kv.substr(0, colon_pos);
+            std::string value = kv.substr(colon_pos + 1);
+
+            assertion_set_->headers.push_back(std::make_pair(key, value));
         } else if (line->find("json_field") != std::string::npos) {
             size_t colon_pos = line->find(':');
             if (colon_pos == std::string::npos) {
@@ -193,7 +216,6 @@ void Parser::parse_assertions() {
             }
 
             size_t field_start = colon_pos + 2; // skip the colon and the space
-
             size_t value_start = line->find(' ', field_start);
             if (value_start == std::string::npos) {
                 // errors.push_back(Error(ErrorType::ExpectedIdentifier,
@@ -217,9 +239,7 @@ void Parser::parse_assertions() {
                 continue;
             }
 
-            // intelligent type inference (regex, number, boolean, or string
-            // match)
-            // TODO: this logic in general sucks
+            // poor man's type inference
             if (value == "true" || value == "false") {
                 assertion_set_->json_fields.push_back(std::pair(field, value));
             } else if (std::regex_match(value,
