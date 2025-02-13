@@ -9,7 +9,7 @@
 // should all be indented
 void ParserError::print() const {
     std::visit(
-        [this](auto &&arg) {
+        [](auto &&arg) {
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, MalformedSectionHeader>) {

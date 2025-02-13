@@ -2,7 +2,6 @@
 #include <curl/curl.h>
 #include <future>
 #include <memory>
-#include <semaphore>
 #include <string>
 
 #include "file.hpp"
@@ -66,7 +65,7 @@ int main(int argc, char **argv) {
         futures;
 
     ThreadPool pool(ctx.jobs);
-    for (const auto filename : input_filenames.value()) {
+    for (const auto &filename : input_filenames.value()) {
         futures.emplace_back(
             pool.submit([filename] { return Raquest(filename).run(); }));
     }
@@ -81,8 +80,6 @@ int main(int argc, char **argv) {
                 printer().error(*err);
         }
     }
-
-    curl_global_cleanup();
 
     if (ctx.errors_size != 0) {
         printer().error_footer(ctx.errors_size);
