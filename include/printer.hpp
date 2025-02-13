@@ -19,8 +19,8 @@ class Printer {
   public:
     void compiling(const std::string &file_name) const;
     void running(const std::string &file_name) const;
-    void error(Error &error) const;
-    void response(CurlResponse &response) const;
+    void error(const Error &error) const;
+    void response(const CurlResponse &response) const;
 
     void print_line_and_left_pad(std::optional<int> line_number) const;
 

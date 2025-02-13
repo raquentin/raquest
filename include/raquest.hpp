@@ -1,5 +1,6 @@
 #pragma once
 
+#include "curl_response.hpp"
 #include "errors/error.hpp"
 #include <expected>
 #include <memory>
@@ -19,7 +20,8 @@ class Raquest {
      *
      * @return A vector of Errors (Parser, Curl, or Assertion).
      */
-    std::vector<std::unique_ptr<Error>> run() const;
+    std::expected<CurlResponse, std::vector<std::unique_ptr<Error>>>
+    run() const;
 
     /**
      * @brief Prints all output thread-safely to std::cout;

@@ -63,7 +63,9 @@ int main(int argc, char **argv) {
     }
 
     std::counting_semaphore<> threads_sem(ctx.jobs);
-    std::vector<std::future<std::vector<std::unique_ptr<Error>>>> futures;
+    std::vector<std::future<
+        std::expected<CurlResponse, std::vector<std::unique_ptr<Error>>>>>
+        futures;
     for (const auto &filename : input_filenames.value()) {
         futures.emplace_back(
             std::async(std::launch::async, [&threads_sem, filename]() {
@@ -74,11 +76,16 @@ int main(int argc, char **argv) {
             }));
     }
 
-    for (auto &fut : futures)
-        for (auto &error : fut.get()) {
-            error->print();
-            ctx.errors_size++;
+    for (auto &fut : futures) {
+        std::expected<CurlResponse, std::vector<std::unique_ptr<Error>>>
+            raquest_result = fut.get();
+        if (raquest_result.has_value()) {
+            printer().response(*raquest_result);
+        } else {
+            for (const auto &err : raquest_result.error())
+                printer().error(*err);
         }
+    }
 
     curl_global_cleanup();
 

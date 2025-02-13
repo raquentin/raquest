@@ -1,4 +1,5 @@
 #include "printer.hpp"
+#include "curl_response.hpp"
 
 Printer &printer() {
     static Printer instance;
@@ -17,7 +18,7 @@ void Printer::running(const std::string &file_name) const {
     fmt::print(fg(fmt::terminal_color::white), "{}\n", file_name);
 }
 
-void Printer::error(Error &error) const {
+void Printer::error(const Error &error) const {
     // Error: <title_>
     fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold, "Error");
 
@@ -33,6 +34,10 @@ void Printer::error(Error &error) const {
 
     // end with newline to separate errors
     fmt::print("\n");
+}
+
+void Printer::response(const CurlResponse &response) const {
+    fmt::print("{}\n", response.get_body());
 }
 
 void Printer::print_line_and_left_pad(std::optional<int> line_number) const {
