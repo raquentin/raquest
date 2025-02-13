@@ -32,8 +32,8 @@ export class ThreadPool {
   private:
     std::vector<std::thread> workers_;
 
-    /*
-     * @brief A
+    /**
+     * @brief A queue of function pointers, the work to be done.
      */
     std::queue<std::function<void()>> tasks_;
     std::mutex queue_mutex_;
