@@ -23,5 +23,5 @@ class Error {
      */
     virtual std::string get_brief() const = 0;
 
-    const std::string &file_name_;
+    const std::string file_name_;
 };

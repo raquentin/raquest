@@ -2,21 +2,21 @@
 #include <curl/curl.h>
 #include <future>
 #include <memory>
+#include <semaphore>
 #include <string>
 
 #include "file.hpp"
 #include "printer.hpp"
 #include "raquest.hpp"
 
+import ThreadPool;
+
 #define RAQUEST_VERSION "0.0.1"
 
 struct AppContext {
     std::vector<std::string> input_paths;
     bool recursive = false;
-
     int jobs = 1;
-
-    // TODO: atomic
     int errors_size = 0;
 };
 
@@ -46,8 +46,7 @@ int main(int argc, char **argv) {
     app.add_option("paths", ctx.input_paths,
                    "specify one or more .raq files or directories")
         ->required()
-        ->check(CLI::ExistingPath)
-        ->expected(-1, 1);
+        ->check(CLI::ExistingPath);
 
     app.add_flag("-r,--recursive", ctx.recursive,
                  "recursively search directories for .raq files")
@@ -62,18 +61,14 @@ int main(int argc, char **argv) {
         std::exit(EXIT_FAILURE);
     }
 
-    std::counting_semaphore<> threads_sem(ctx.jobs);
     std::vector<std::future<
         std::expected<CurlResponse, std::vector<std::unique_ptr<Error>>>>>
         futures;
-    for (const auto &filename : input_filenames.value()) {
+
+    ThreadPool pool(ctx.jobs);
+    for (const auto filename : input_filenames.value()) {
         futures.emplace_back(
-            std::async(std::launch::async, [&threads_sem, filename]() {
-                threads_sem.acquire();
-                auto run_output = Raquest(filename).run();
-                threads_sem.release();
-                return run_output;
-            }));
+            pool.submit([filename] { return Raquest(filename).run(); }));
     }
 
     for (auto &fut : futures) {

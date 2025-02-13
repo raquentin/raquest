@@ -3,6 +3,7 @@
 #include "curl_request.hpp"
 #include "errors/parser_error.hpp"
 #include <expected>
+#include <gtest/gtest_prod.h>
 #include <optional>
 #include <string>
 
@@ -17,6 +18,11 @@ class Parser {
     std::expected<std::pair<CurlRequest, std::optional<AssertionSet>>,
                   std::vector<ParserError>>
     parse();
+
+    FRIEND_TEST(ParserTest, NextLineBasic);
+    FRIEND_TEST(ParserTest, ParseMinimalValid);
+    FRIEND_TEST(ParserTest, ParseMalformedHeader);
+    FRIEND_TEST(ParserTest, ConcurrentNextLine);
 
   private:
     std::string input_;

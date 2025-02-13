@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 project(raquest)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMAND ON)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -11,7 +12,9 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
       ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++23 -D__cpp_concepts=202002L")
+set(CMAKE_CXX_FLAGS "-std=c++23")
+
+add_compile_options(-Wall -Wextra -pedantic)
 
 include_directories(include)
 add_definitions(-DSOME_DEFINITION)
@@ -19,6 +22,18 @@ add_subdirectory(src)
 
 enable_testing()
 add_subdirectory(tests)
+
+add_library(ThreadPool STATIC
+    src/thread_pool.cppm
+)
+
+target_sources(ThreadPool
+    PUBLIC
+        FILE_SET CXX_MODULES
+        FILES
+            src/thread_pool.cppm
+)
+
 
 include(FetchContent)
 
@@ -58,6 +73,12 @@ add_custom_target(memcheck
         --force-new-ctest-process --test-action memcheck
     COMMAND ${CMAKE_COMMAND} -E cat "${CMAKE_BINARY_DIR}/Testing/Temporary/MemoryChecker.*.log"
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+add_custom_target(runtests
+    COMMAND ${CMAKE_CTEST_COMMAND} 
+        --output-on-failure --schedule-random
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
 
 add_custom_target(
     valgrind
