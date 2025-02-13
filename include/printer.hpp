@@ -17,8 +17,11 @@
  */
 class Printer {
   public:
+    Printer();
+
     void compiling(const std::string &file_name) const;
     void running(const std::string &file_name) const;
+    void retrying(const std::string &file_name) const;
     void error(const Error &error) const;
     void response(const CurlResponse &response) const;
 
@@ -33,11 +36,11 @@ class Printer {
     friend int main(int argc, char **argv);
 
   private:
-    mutable std::mutex mtx_;
+    mutable std::mutex mutex_;
 
-    bool verbose_ = false;
-    bool quiet_ = false;
-    bool color_disabled_ = false;
+    bool verbose_;
+    bool quiet_;
+    bool color_;
 };
 
 /**

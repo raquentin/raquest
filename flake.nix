@@ -21,6 +21,7 @@
           packages = with pkgs; [
             llvmPackages_19.libcxxClang
             llvmPackages_19.clang-tools
+            gdb
             cmake
             gtest
             openssl

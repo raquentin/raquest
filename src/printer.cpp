@@ -1,24 +1,38 @@
 #include "printer.hpp"
+#include "config.hpp"
 #include "curl_response.hpp"
 
-Printer &printer() {
-    static Printer instance;
-    return instance;
-}
+Printer::Printer()
+    : verbose_(config().verbose), quiet_(config().quiet),
+      color_(!config().no_color) {}
 
 void Printer::compiling(const std::string &file_name) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     fmt::print(fg(fmt::terminal_color::bright_green) | fmt::emphasis::bold,
                "Compiling ");
     fmt::print(fg(fmt::terminal_color::white), "{}\n", file_name);
 }
 
 void Printer::running(const std::string &file_name) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     fmt::print(fg(fmt::terminal_color::bright_cyan) | fmt::emphasis::bold,
                "Running   ");
     fmt::print(fg(fmt::terminal_color::white), "{}\n", file_name);
 }
 
+void Printer::retrying(const std::string &file_name) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
+               "Retrying  ");
+    fmt::print(fg(fmt::terminal_color::white), "{}\n", file_name);
+}
+
 void Printer::error(const Error &error) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     // Error: <title_>
     fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold, "Error");
 
@@ -37,9 +51,15 @@ void Printer::error(const Error &error) const {
 }
 
 void Printer::response(const CurlResponse &response) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     fmt::print("{}\n", response.get_body());
 }
 
+/**
+ * @note Should not acquire the mutex because this will called from functions
+ * with the mutex.
+ */
 void Printer::print_line_and_left_pad(std::optional<int> line_number) const {
     int digits = 0;
     if (line_number.has_value()) {
@@ -56,6 +76,8 @@ void Printer::print_line_and_left_pad(std::optional<int> line_number) const {
 }
 
 void Printer::error_footer(int errors_size) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     fmt::print(fg(fmt::terminal_color::bright_red) | fmt::emphasis::bold,
                "error");
     if (errors_size == 1) {
@@ -65,4 +87,9 @@ void Printer::error_footer(int errors_size) const {
         fmt::print(fg(fmt::terminal_color::white),
                    ": failed due to {} errors above", errors_size);
     }
+}
+
+Printer &printer() {
+    static Printer instance;
+    return instance;
 }

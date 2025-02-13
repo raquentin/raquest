@@ -85,3 +85,12 @@ add_custom_target(
     COMMAND valgrind --leak-check=full ./src/raquest ../examples -r
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
+
+function(analyze target)
+    get_target_property(SRCs ${target} SOURCES)
+    add_library(${target}_analyze OBJECT EXCLUDE_FROM_ALL ${SRCs})
+    set_target_properties(${target}_analyze PROPERTIES
+                          COMPILE_OPTIONS "--analyze"
+                          EXCLUDE_FROM_DEFAULT_BUILD true)
+endfunction()

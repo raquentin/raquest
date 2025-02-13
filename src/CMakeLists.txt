@@ -4,6 +4,7 @@ set(SOURCE_FILES
     errors/file_error.cpp
     errors/parser_error.cpp
     assertion_set.cpp
+    config.cpp
     curl_request.cpp
     curl_response.cpp
     parser.cpp
