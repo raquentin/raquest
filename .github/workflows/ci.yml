@@ -17,7 +17,7 @@ jobs:
 
       - name: Download Dependencies
         run: |
-          sudo apt-get install ninja
+          sudo apt-get install ninja-build
 
       - name: Configure Build Directory
         run: |
@@ -30,7 +30,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          ninja test -C build
+          ninja runtests -C build
           ninja memcheck -C build
 
       - name: Run Valgrind
