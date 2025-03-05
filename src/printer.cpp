@@ -7,6 +7,9 @@ Printer::Printer()
       color_(!config().no_color) {}
 
 void Printer::compiling(const std::string &file_name) const {
+    if (!verbose_)
+        return;
+
     std::unique_lock<std::mutex> lock(mutex_);
 
     fmt::print(fg(fmt::terminal_color::bright_green) | fmt::emphasis::bold,
@@ -15,6 +18,9 @@ void Printer::compiling(const std::string &file_name) const {
 }
 
 void Printer::running(const std::string &file_name) const {
+    if (!verbose_)
+        return;
+
     std::unique_lock<std::mutex> lock(mutex_);
 
     fmt::print(fg(fmt::terminal_color::bright_cyan) | fmt::emphasis::bold,
@@ -23,6 +29,9 @@ void Printer::running(const std::string &file_name) const {
 }
 
 void Printer::retrying(const std::string &file_name) const {
+    if (!verbose_)
+        return;
+
     std::unique_lock<std::mutex> lock(mutex_);
 
     fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
@@ -63,10 +72,12 @@ void Printer::response(const CurlResponse &response) const {
 void Printer::print_line_and_left_pad(std::optional<int> line_number) const {
     int digits = 0;
     if (line_number.has_value()) {
-        while (line_number.value() != 0) {
-            line_number.value() /= 10;
+        auto val = line_number.value();
+        while (val != 0) {
+            val /= 10;
             digits++;
         }
+
         fmt::print(fg(fmt::terminal_color::bright_black) | fmt::emphasis::bold,
                    " {}{}| ", line_number.value(), SPACES(3 - digits));
     } else {
@@ -82,7 +93,7 @@ void Printer::error_footer(int errors_size) const {
                "error");
     if (errors_size == 1) {
         fmt::print(fg(fmt::terminal_color::white),
-                   ": failed due to 1 errors above");
+                   ": failed due to 1 error above");
     } else {
         fmt::print(fg(fmt::terminal_color::white),
                    ": failed due to {} errors above", errors_size);

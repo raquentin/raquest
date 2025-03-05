@@ -69,7 +69,7 @@ status: 200, 201
         auto &as = assertionsOpt.value();
 
         ASSERT_FALSE(as.status_codes.empty());
-        EXPECT_EQ(as.status_codes[0], 200);
+        EXPECT_EQ(as.status_codes[0].code, 200);
     }
 }
 
@@ -122,12 +122,12 @@ json_field: isAdmin true
         auto &as = assertionsOpt.value();
 
         EXPECT_EQ(as.status_codes.size(), 2);
-        EXPECT_EQ(as.status_codes[0], 200);
-        EXPECT_EQ(as.status_codes[1], 404);
+        EXPECT_EQ(as.status_codes[0].code, 200);
+        EXPECT_EQ(as.status_codes[1].code, 404);
 
         EXPECT_FALSE(as.headers.empty());
-        EXPECT_EQ(as.headers[0].first, "Content-Type");
-        EXPECT_EQ(as.headers[0].second, " application/json");
+        EXPECT_EQ(as.headers[0].key, "Content-Type");
+        EXPECT_EQ(as.headers[0].value, " application/json");
 
         EXPECT_EQ(as.json_fields.size(), 3u);
         // TODO: check the fields

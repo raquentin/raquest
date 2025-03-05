@@ -11,3 +11,11 @@ Content-Type: application/json
 
 [assertions]
 json_field: title ^foo$
+
+Error: missing json field
+   --> ./examples/errors/json_value_mismatch.raq
+    |
+ 13 | json_field: title ^foo$
+    |             ^^^^^
+    | expl: json key "title" was not found in the response
+    | note: run with -v to see full responses on assertion failures

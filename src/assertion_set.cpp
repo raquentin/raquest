@@ -7,48 +7,51 @@ std::vector<AssertionError> validate(const CurlResponse &r,
 
     std::vector<AssertionError> errors;
 
+    // validate status codes
     int status_code = r.get_status_code();
-    if (!as.status_codes.empty() &&
-        std::find(as.status_codes.begin(), as.status_codes.end(),
-                  status_code) == as.status_codes.end()) {
+    if (!as.status_codes.empty()) {
+
+        for (const StatusCodeAssertion &sc : as.status_codes) {
+            if (sc.code == status_code)
+                goto SKIP_CODES;
+        }
+
         std::stringstream ss;
         ss << "Expected one of these status codes: ";
-        for (int code : as.status_codes) {
-            ss << code << " ";
+        for (const auto &sca : as.status_codes) {
+            ss << sca.code << " ";
         }
         ss << "but got " << status_code;
-        errors.push_back(AssertionError(
-            r.get_file_name(), AssertionError::Type::UnexpectedStatusCode));
+        /*errors.emplace_back(AssertionError(*/
+        /*    r.get_file_name(), AssertionError::Type::UnexpectedStatusCode));*/
     }
 
-    for (const auto &[key, expected_value] : as.headers) {
+SKIP_CODES:
+    for (const auto &[ln, key, expected_value] : as.headers) {
         if (auto value = r.get_header_value(key)) {
             if (*value != expected_value) {
                 std::stringstream ss;
                 ss << "Expected header '" << key << "' to have value '"
                    << expected_value << "' but got '" << *value << "'";
 
-                errors.push_back(AssertionError(
-                    r.get_file_name(), AssertionError::Type::UnexpectedHeader));
+                /*errors.emplace_back(AssertionError(*/
+                /*    r.get_file_name(),
+                 * AssertionError::Type::UnexpectedHeader));*/
             }
         } else {
             std::stringstream ss;
             ss << "Expected header '" << key << "' to be present but it wasn't";
-            errors.push_back(AssertionError(
-                r.get_file_name(), AssertionError::Type::MissingHeader));
+            /*errors.emplace_back(AssertionError(*/
+            /*    r.get_file_name(), AssertionError::Type::MissingHeader));*/
         }
     }
 
-    for (const auto &[key, pattern] : as.json_fields) {
+    for (const auto &[ln, key, pattern] : as.json_fields) {
         auto value = r.get_json_field(key);
 
+        // error that key does not exist
         if (!value.has_value()) {
-
-            // "Expected json field '" + key + "' to be present but it wasn't",
-
-            errors.push_back(AssertionError(
-                r.get_file_name(), AssertionError::Type::MissingJsonField));
-            continue;
+            // TODO:
         }
 
         std::string val = value.value();
@@ -58,13 +61,18 @@ std::vector<AssertionError> validate(const CurlResponse &r,
         }
 
         if (!std::regex_match(val, pattern.get_regex())) {
+            // find index of key in text
+            size_t colon_pos = 3;
 
-            //                 "Expected json field '" + key + "' to match
-            //                 pattern '" + pattern.get_pattern() + "' but it
-            //                 didn't, it was '" + val + "'",
+            auto emph_range = std::pair(colon_pos, colon_pos + key.length());
 
-            errors.push_back(AssertionError(
-                r.get_file_name(), AssertionError::Type::MissingJsonField));
+            Hint hint =
+                Hint{emph_range, "this key was not found in the respone"};
+
+            MissingJsonField info{ln, "code snippet", hint};
+
+            errors.push_back(AssertionError(r.get_file_name(), info));
+            continue;
         }
     }
 

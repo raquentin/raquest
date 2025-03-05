@@ -3,6 +3,14 @@
 #include <string>
 
 /**
+ * @brief A structure for contextual code hints.
+ */
+struct Hint {
+    std::pair<int, int> emph_range;
+    std::string message;
+};
+
+/**
  * @brief A virtual Error class.
  */
 class Error {

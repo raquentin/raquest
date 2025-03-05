@@ -184,7 +184,7 @@ void Parser::parse_assertions() {
             std::vector<int> status_codes;
             int code;
             while (iss >> code) {
-                assertion_set_->status_codes.push_back(code);
+                assertion_set_->status_codes.emplace_back(line_number_, code);
                 if (iss.peek() == ',') {
                     iss.ignore();
                 }
@@ -207,7 +207,7 @@ void Parser::parse_assertions() {
             std::string key = kv.substr(0, colon_pos);
             std::string value = kv.substr(colon_pos + 1);
 
-            assertion_set_->headers.push_back(std::make_pair(key, value));
+            assertion_set_->headers.emplace_back(line_number_, key, value);
         } else if (line->find("json_field") != std::string::npos) {
             size_t colon_pos = line->find(':');
             if (colon_pos == std::string::npos) {
@@ -245,10 +245,12 @@ void Parser::parse_assertions() {
 
             // poor man's type inference
             if (value == "true" || value == "false") {
-                assertion_set_->json_fields.push_back(std::pair(field, value));
+                assertion_set_->json_fields.emplace_back(line_number_, field,
+                                                         value);
             } else if (std::regex_match(value,
                                         std::regex("^-?\\d+(\\.\\d+)?$"))) {
-                assertion_set_->json_fields.push_back(std::pair(field, value));
+                assertion_set_->json_fields.emplace_back(line_number_, field,
+                                                         value);
             } else {
                 // it's a string or regex pattern
                 // TODO: this logic is not correct
@@ -257,7 +259,8 @@ void Parser::parse_assertions() {
                 if (value.front() != '^' && value.back() != '$') {
                     value = "^" + value + "$"; // regex wrap
                 }
-                assertion_set_->json_fields.push_back(std::pair(field, value));
+                assertion_set_->json_fields.emplace_back(line_number_, field,
+                                                         value);
             }
         }
     }

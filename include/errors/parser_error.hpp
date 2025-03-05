@@ -1,13 +1,9 @@
 #pragma once
+
 #include "error.hpp"
 #include <optional>
 #include <string>
 #include <variant>
-
-struct Hint {
-    std::pair<int, int> emph_range;
-    std::string message;
-};
 
 struct MalformedSectionHeader {
     std::string section_name;

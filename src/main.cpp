@@ -76,8 +76,10 @@ int main(int argc, char **argv) {
         if (raquest_result.has_value()) {
             printer().response(*raquest_result);
         } else {
-            for (const auto &err : raquest_result.error())
+            for (const auto &err : raquest_result.error()) {
+                config().errors_size++;
                 printer().error(*err);
+            }
         }
     }
 

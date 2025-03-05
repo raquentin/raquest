@@ -71,11 +71,6 @@ ninja -C build
 ```bash
 ninja runtests -C build
 ninja memcheck -C build
-```
-
-#### Run Valgrind
-
-```bash
 ninja valgrind -C build
 ```
 

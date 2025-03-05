@@ -3,7 +3,6 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <variant>
-;
 
 // print error-specific content.
 // should all be indented

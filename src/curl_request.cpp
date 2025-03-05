@@ -10,7 +10,6 @@ CurlRequest::CurlRequest(const std::string &file_name)
     : file_name_(file_name) {};
 
 std::expected<CurlResponse, CurlError> CurlRequest::execute() const {
-
     printer().running(file_name_);
 
     CURL *curl;
@@ -61,6 +60,8 @@ std::expected<CurlResponse, CurlError> CurlRequest::execute() const {
     curl_slist_free_all(curl_headers);
 
     curl_easy_cleanup(curl);
+
+    response.set_file_name(file_name_);
 
     return response;
 }
